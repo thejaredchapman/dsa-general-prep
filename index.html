@@ -4832,7 +4832,10 @@ async function getPyodide() {
 }
 
 function runUserCode(py, userCode) {
-  const escaped = userCode.replace(/\\/g, '\\\\').replace(/"""/g, '\\"\\"\\"');
+  // Pass code as a Python variable — no escaping needed.
+  // exec() without second arg runs in the current global scope,
+  // so user's functions persist in py.globals and auto-tests can call them.
+  py.globals.set('_user_code', userCode);
   py.runPython(`
 import sys, io, traceback as _tb
 _cap_out = io.StringIO(); _cap_err = io.StringIO()
@@ -4840,7 +4843,7 @@ _old_out, _old_err = sys.stdout, sys.stderr
 sys.stdout = _cap_out; sys.stderr = _cap_err
 _exec_error = None
 try:
-    exec("""${escaped}""", {})
+    exec(_user_code)
 except Exception:
     _exec_error = _tb.format_exc()
 finally:
