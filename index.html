@@ -5487,6 +5487,536 @@ function Algorithms() {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   TAB: FOUNDATIONS REFERENCE
+═══════════════════════════════════════════════════════════ */
+
+function FoundSection({ title, children }) {
+  return (
+    <div style={{background:'#fff',border:'1px solid #e5e5e5',borderRadius:'8px',padding:'20px',marginBottom:'16px'}}>
+      <div className="ref-section-title" style={{marginBottom:'14px',fontSize:'13px'}}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function FoundCode({ children }) {
+  return <pre className="template-code" style={{marginBottom:'10px'}}>{children}</pre>;
+}
+
+function FoundTable({ headers, rows }) {
+  return (
+    <div className="cx-table-wrap" style={{marginBottom:'12px'}}>
+      <table className="cx-table">
+        <thead><tr>{headers.map(h => <th key={h}>{h}</th>)}</tr></thead>
+        <tbody>{rows.map((r,i) => <tr key={i}>{r.map((c,j) => <td key={j}>{c}</td>)}</tr>)}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function Foundations() {
+  const SECS = ['Arrays','Linked Lists','Stacks','Queues','Trees','Heaps','Searching','Sorting','Recursion','Graphs','Tree Traversal','Combinatorics','OOP','Design Patterns'];
+  const [sel, setSel] = useState(null);
+  const show = s => sel === null || sel === s;
+  return (
+    <div>
+      <div className="section-title" style={{marginBottom:'6px'}}>Foundations Reference</div>
+      <p style={{fontSize:'13px',color:'var(--muted)',marginBottom:'12px'}}>Core CS fundamentals — data structures, algorithms, OOP, and design patterns.</p>
+      <div className="filter-bar" style={{marginBottom:'20px',flexWrap:'wrap',gap:'6px'}}>
+        <button className={`filter-btn${sel===null?' active':''}`} onClick={() => setSel(null)}>All</button>
+        {SECS.map(s => (
+          <button key={s} className={`filter-btn${sel===s?' active':''}`}
+            onClick={() => setSel(x => x===s ? null : s)}>{s}</button>
+        ))}
+      </div>
+
+      {show('Arrays') && (
+        <FoundSection title="Arrays">
+          <p style={{fontSize:'13px',color:'#4b5563',marginBottom:'10px'}}>Contiguous memory block. O(1) random access, O(n) insert/delete (shift required).</p>
+          <FoundCode>{`arr = [1, 2, 3, 4]
+arr[2]           # O(1) access
+arr.append(5)    # O(1) amortized
+arr.insert(1, 9) # O(n) — shifts elements
+arr.pop()        # O(1) from end
+arr.pop(0)       # O(n) from front — use deque instead`}</FoundCode>
+          <FoundTable
+            headers={['Operation','Time','Notes']}
+            rows={[
+              ['Access by index','O(1)','Direct memory offset'],
+              ['Search (unsorted)','O(n)','Linear scan'],
+              ['Insert / Delete (end)','O(1) amortized','Dynamic array may resize'],
+              ['Insert / Delete (middle)','O(n)','Must shift elements'],
+            ]}
+          />
+          <p style={{fontSize:'12px',color:'var(--muted)'}}>Cache-friendly — prefer over linked lists for random/sequential access. Python lists are dynamic arrays.</p>
+        </FoundSection>
+      )}
+
+      {show('Linked Lists') && (
+        <FoundSection title="Linked Lists">
+          <p style={{fontSize:'13px',color:'#4b5563',marginBottom:'10px'}}>Nodes linked by pointers. O(1) insert/delete at a known node, O(n) search.</p>
+          <FoundCode>{`class Node:
+    def __init__(self, val):
+        self.val = val
+        self.next = None   # singly
+        # self.prev = None # doubly
+
+# Singly: head → [1|→] → [2|→] → [3|None]
+# Doubly: None ← [1] ↔ [2] ↔ [3] → None`}</FoundCode>
+          <FoundTable
+            headers={['Operation','Singly','Doubly']}
+            rows={[
+              ['Insert head','O(1)','O(1)'],
+              ['Insert tail','O(n) / O(1) w/ tail ptr','O(1)'],
+              ['Delete by value','O(n)','O(n)'],
+              ['Delete by node','O(n)*','O(1)'],
+              ['Search','O(n)','O(n)'],
+            ]}
+          />
+          <p style={{fontSize:'12px',color:'var(--muted)',marginBottom:'8px'}}>*Singly needs traversal to find the previous node.</p>
+          <FoundCode>{`# Floyd's cycle detection
+slow = fast = head
+while fast and fast.next:
+    slow = slow.next
+    fast = fast.next.next
+    if slow is fast:
+        return True  # cycle
+
+# Find middle
+slow = fast = head
+while fast and fast.next:
+    slow = slow.next
+    fast = fast.next.next
+# slow is at middle`}</FoundCode>
+        </FoundSection>
+      )}
+
+      {show('Stacks') && (
+        <FoundSection title="Stacks">
+          <p style={{fontSize:'13px',color:'#4b5563',marginBottom:'10px'}}>LIFO. O(1) push/pop/peek. Use Python list as stack.</p>
+          <FoundCode>{`stack = []
+stack.append(x)  # push  O(1)
+stack.pop()      # pop   O(1)
+stack[-1]        # peek  O(1)
+not stack        # empty check
+
+# Monotonic stack — next greater element
+stack = []
+result = [-1] * len(arr)
+for i, x in enumerate(arr):
+    while stack and arr[stack[-1]] < x:
+        result[stack.pop()] = x
+    stack.append(i)`}</FoundCode>
+          <p style={{fontSize:'12px',color:'var(--muted)'}}>Classic uses: balanced parentheses, next greater/smaller element, DFS, undo/redo, expression evaluation.</p>
+        </FoundSection>
+      )}
+
+      {show('Queues') && (
+        <FoundSection title="Queues">
+          <p style={{fontSize:'13px',color:'#4b5563',marginBottom:'10px'}}>FIFO. Use <code style={{fontFamily:"'Fira Code',monospace",background:'#f4f4f5',padding:'1px 4px',borderRadius:'3px'}}>collections.deque</code> for O(1) both ends.</p>
+          <FoundCode>{`from collections import deque
+q = deque()
+q.append(x)     # enqueue right  O(1)
+q.appendleft(x) # enqueue left   O(1)
+q.popleft()     # dequeue left   O(1)
+q.pop()         # dequeue right  O(1)
+
+# Priority Queue (min-heap)
+import heapq
+pq = []
+heapq.heappush(pq, (priority, item))
+priority, item = heapq.heappop(pq)  # smallest first`}</FoundCode>
+          <p style={{fontSize:'12px',color:'var(--muted)'}}>Variants: Deque (double-ended, sliding window max), Priority Queue / Min-Heap (always dequeues min).</p>
+        </FoundSection>
+      )}
+
+      {show('Trees') && (
+        <FoundSection title="Trees">
+          <p style={{fontSize:'13px',color:'#4b5563',marginBottom:'10px'}}>Connected acyclic graph with a root. Every node has at most one parent.</p>
+          <FoundCode>{`class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+# BST property: left < root < right
+# Balanced BST guarantees O(log n) search/insert/delete`}</FoundCode>
+          <FoundTable
+            headers={['Type','Guarantee']}
+            rows={[
+              ['BST','Order property: left < root < right'],
+              ['AVL','Height balanced: |left − right| ≤ 1'],
+              ['Red-Black','~Balanced, used in std::map / TreeMap'],
+              ['B-Tree','Many children per node — used in databases'],
+              ['Trie','Prefix tree — efficient string ops'],
+            ]}
+          />
+          <p style={{fontSize:'12px',color:'var(--muted)'}}>BST average O(log n); worst O(n) when degenerate (skewed). Balanced BSTs guarantee O(log n) worst case.</p>
+        </FoundSection>
+      )}
+
+      {show('Heaps') && (
+        <FoundSection title="Heaps">
+          <p style={{fontSize:'13px',color:'#4b5563',marginBottom:'10px'}}>Complete binary tree satisfying heap property. Stored as array — O(1) peek, O(log n) push/pop.</p>
+          <FoundCode>{`import heapq
+
+# Min-heap (default in Python)
+h = [3, 1, 4, 1, 5]
+heapq.heapify(h)        # O(n) in-place
+heapq.heappush(h, 2)    # O(log n)
+heapq.heappop(h)        # O(log n) — returns min
+
+# Max-heap: negate values
+heapq.heappush(h, -val)
+-heapq.heappop(h)
+
+# Array index math (0-based):
+# parent(i)      = (i - 1) // 2
+# left_child(i)  = 2*i + 1
+# right_child(i) = 2*i + 2`}</FoundCode>
+          <FoundTable
+            headers={['Operation','Time']}
+            rows={[
+              ['Peek min/max','O(1)'],
+              ['Insert (heapify up)','O(log n)'],
+              ['Extract min/max','O(log n)'],
+              ['Build heap from array','O(n)'],
+              ['Search','O(n)'],
+            ]}
+          />
+          <p style={{fontSize:'12px',color:'var(--muted)'}}>Uses: Top-K elements, merge K sorted lists, Dijkstra, scheduling, median maintenance (two heaps).</p>
+        </FoundSection>
+      )}
+
+      {show('Searching') && (
+        <FoundSection title="Searching">
+          <p style={{fontSize:'13px',color:'#4b5563',marginBottom:'10px'}}>Linear O(n) on any data; Binary O(log n) on sorted data.</p>
+          <FoundCode>{`# Binary Search — standard
+def binary_search(arr, target):
+    lo, hi = 0, len(arr) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if arr[mid] == target: return mid
+        elif arr[mid] < target: lo = mid + 1
+        else: hi = mid - 1
+    return -1
+
+# Find leftmost occurrence
+def left_bound(arr, target):
+    lo, hi = 0, len(arr)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if arr[mid] < target: lo = mid + 1
+        else: hi = mid
+    return lo
+
+# Binary search on answer space
+# "minimum X such that condition(X) is True"
+lo, hi = min_val, max_val
+while lo < hi:
+    mid = (lo + hi) // 2
+    if condition(mid): hi = mid
+    else: lo = mid + 1`}</FoundCode>
+        </FoundSection>
+      )}
+
+      {show('Sorting') && (
+        <FoundSection title="Sorting">
+          <FoundTable
+            headers={['Algorithm','Best','Average','Worst','Space','Stable']}
+            rows={[
+              ['Bubble','O(n)','O(n²)','O(n²)','O(1)','Yes'],
+              ['Insertion','O(n)','O(n²)','O(n²)','O(1)','Yes'],
+              ['Selection','O(n²)','O(n²)','O(n²)','O(1)','No'],
+              ['Merge','O(n log n)','O(n log n)','O(n log n)','O(n)','Yes'],
+              ['Quick','O(n log n)','O(n log n)','O(n²)','O(log n)','No'],
+              ['Heap','O(n log n)','O(n log n)','O(n log n)','O(1)','No'],
+              ['Counting','O(n+k)','O(n+k)','O(n+k)','O(k)','Yes'],
+              ['Timsort (Python)','O(n)','O(n log n)','O(n log n)','O(n)','Yes'],
+            ]}
+          />
+          <FoundCode>{`# Merge Sort
+def merge_sort(arr):
+    if len(arr) <= 1: return arr
+    mid = len(arr) // 2
+    L, R = merge_sort(arr[:mid]), merge_sort(arr[mid:])
+    return merge(L, R)  # O(n) merge step
+
+# Quick Sort — random pivot avoids O(n²) worst case
+import random
+def quicksort(arr, lo, hi):
+    if lo < hi:
+        pivot_idx = partition(arr, lo, hi)
+        quicksort(arr, lo, pivot_idx - 1)
+        quicksort(arr, pivot_idx + 1, hi)
+
+# Python built-in: Timsort (merge + insertion hybrid)
+arr.sort()           # in-place, stable, O(n log n)
+sorted(arr)          # returns new list
+arr.sort(key=lambda x: x[1])  # custom key`}</FoundCode>
+        </FoundSection>
+      )}
+
+      {show('Recursion') && (
+        <FoundSection title="Recursion">
+          <p style={{fontSize:'13px',color:'#4b5563',marginBottom:'10px'}}>Every recursive function needs a base case and a recursive case that reduces toward it.</p>
+          <FoundCode>{`# Pattern: base case + recursive case
+def factorial(n):
+    if n == 0: return 1        # base case
+    return n * factorial(n-1)  # reduces n each call
+
+# Memoization (top-down DP) = recursion + cache
+from functools import lru_cache
+
+@lru_cache(maxsize=None)
+def fib(n):
+    if n <= 1: return n
+    return fib(n-1) + fib(n-2)  # O(n) with cache, O(2^n) without
+
+# Convert deep recursion to iterative (stack overflow risk)
+def dfs_iterative(root):
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        for child in node.children:
+            stack.append(child)`}</FoundCode>
+          <p style={{fontSize:'12px',color:'var(--muted)'}}>Call stack cost: each call adds a frame. Deep recursion → stack overflow. Python default limit ~1000. Convert to iterative with explicit stack when depth is unbounded. Python does NOT optimize tail recursion.</p>
+        </FoundSection>
+      )}
+
+      {show('Graphs') && (
+        <FoundSection title="Graph Theory">
+          <p style={{fontSize:'13px',color:'#4b5563',marginBottom:'10px'}}>G = (V, E). Vertices and edges. Directed/undirected, weighted/unweighted, cyclic/acyclic.</p>
+          <FoundCode>{`# Adjacency list — O(V+E) space (preferred)
+graph = {'A': ['B','C'], 'B': ['D'], 'C': ['D'], 'D': []}
+
+# BFS — shortest path (unweighted), level order
+from collections import deque
+def bfs(graph, start):
+    visited, q = {start}, deque([start])
+    while q:
+        node = q.popleft()
+        for nb in graph[node]:
+            if nb not in visited:
+                visited.add(nb); q.append(nb)
+
+# DFS — iterative
+def dfs(graph, start):
+    visited, stack = set(), [start]
+    while stack:
+        node = stack.pop()
+        if node in visited: continue
+        visited.add(node)
+        stack.extend(graph[node])
+
+# Union-Find (Disjoint Set Union)
+class UnionFind:
+    def __init__(self, n):
+        self.parent = list(range(n)); self.rank = [0]*n
+    def find(self, x):
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])  # path compression
+        return self.parent[x]
+    def union(self, x, y):
+        px, py = self.find(x), self.find(y)
+        if px == py: return False
+        if self.rank[px] < self.rank[py]: px, py = py, px
+        self.parent[py] = px
+        if self.rank[px] == self.rank[py]: self.rank[px] += 1
+        return True`}</FoundCode>
+          <FoundTable
+            headers={['Algorithm','Purpose','Time']}
+            rows={[
+              ['BFS','Shortest path (unweighted), level-order','O(V+E)'],
+              ['DFS','Connectivity, cycles, topo sort','O(V+E)'],
+              ['Dijkstra','Shortest path (non-negative weights)','O((V+E) log V)'],
+              ['Bellman-Ford','Shortest path (negative weights)','O(VE)'],
+              ['Floyd-Warshall','All-pairs shortest path','O(V³)'],
+              ['Prim / Kruskal','Minimum spanning tree','O(E log E)'],
+              ['Topological Sort','Ordering in a DAG','O(V+E)'],
+              ['Union-Find','Connected components, cycle detect','~O(1) amortized'],
+            ]}
+          />
+        </FoundSection>
+      )}
+
+      {show('Tree Traversal') && (
+        <FoundSection title="Tree Traversal">
+          <FoundCode>{`# DFS Traversals
+def inorder(node):    # Left → Root → Right  (BST: sorted order)
+    if not node: return
+    inorder(node.left); visit(node); inorder(node.right)
+
+def preorder(node):   # Root → Left → Right  (serialize tree)
+    if not node: return
+    visit(node); preorder(node.left); preorder(node.right)
+
+def postorder(node):  # Left → Right → Root  (delete tree, eval expressions)
+    if not node: return
+    postorder(node.left); postorder(node.right); visit(node)
+
+# BFS / Level-order
+from collections import deque
+def level_order(root):
+    if not root: return
+    q = deque([root])
+    while q:
+        for _ in range(len(q)):    # process one level at a time
+            node = q.popleft()
+            visit(node)
+            if node.left:  q.append(node.left)
+            if node.right: q.append(node.right)
+
+# Iterative inorder (no recursion)
+def inorder_iter(root):
+    stack, cur = [], root
+    while stack or cur:
+        while cur: stack.append(cur); cur = cur.left
+        cur = stack.pop()
+        visit(cur)
+        cur = cur.right`}</FoundCode>
+        </FoundSection>
+      )}
+
+      {show('Combinatorics') && (
+        <FoundSection title="Combinatorial Problems">
+          <FoundTable
+            headers={['Problem','Formula']}
+            rows={[
+              ['Permutations of n','n!'],
+              ['k-permutations of n','n! / (n−k)!'],
+              ['Combinations (n choose k)','n! / (k!(n−k)!)'],
+              ['Subsets of n elements','2ⁿ'],
+            ]}
+          />
+          <FoundCode>{`# Backtracking template
+def backtrack(state, choices):
+    if is_solution(state):
+        results.append(state[:])
+        return
+    for choice in choices:
+        if is_valid(choice, state):
+            state.append(choice)
+            backtrack(state, next_choices(choice))
+            state.pop()             # undo
+
+# Subsets (power set)
+def subsets(nums):
+    result = [[]]
+    for n in nums:
+        result += [s + [n] for s in result]
+    return result
+
+# Permutations
+from itertools import permutations, combinations
+list(permutations([1,2,3]))        # all orderings
+list(combinations([1,2,3], 2))     # choose 2, no repeat
+list(combinations_with_replacement([1,2,3], 2))  # choose 2, with repeat`}</FoundCode>
+          <p style={{fontSize:'12px',color:'var(--muted)'}}>Backtracking is systematic trial-and-error with pruning. Used for: permutations, combinations, subsets, N-queens, Sudoku, word search. DP handles overlapping subproblems; backtracking explores a decision tree.</p>
+        </FoundSection>
+      )}
+
+      {show('OOP') && (
+        <FoundSection title="OOP — Object-Oriented Design">
+          <FoundTable
+            headers={['Pillar','Meaning']}
+            rows={[
+              ['Encapsulation','Bundle data + behavior; hide internals behind a public interface'],
+              ['Abstraction','Expose only what is necessary; hide implementation details'],
+              ['Inheritance','Child classes extend or override parent behavior'],
+              ['Polymorphism','Same interface, different implementations at runtime'],
+            ]}
+          />
+          <FoundCode>{`# SOLID principles
+# S — Single Responsibility: one class, one reason to change
+# O — Open/Closed: open for extension, closed for modification
+# L — Liskov Substitution: subclasses must substitute for their base
+# I — Interface Segregation: many specific interfaces > one general one
+# D — Dependency Inversion: depend on abstractions, not concretions
+
+class Animal:               # base class
+    def speak(self): raise NotImplementedError
+
+class Dog(Animal):          # inheritance
+    def speak(self): return "Woof"
+
+class Cat(Animal):          # polymorphism — same interface
+    def speak(self): return "Meow"
+
+def make_noise(animal: Animal):   # depends on abstraction
+    print(animal.speak())`}</FoundCode>
+        </FoundSection>
+      )}
+
+      {show('Design Patterns') && (
+        <FoundSection title="Design Patterns">
+          <p style={{fontSize:'13px',color:'#4b5563',marginBottom:'10px'}}>23 GoF patterns organized into 3 categories.</p>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'12px',marginBottom:'14px'}}>
+            {[
+              {cat:'Creational',desc:'Object creation',items:['Singleton — one global instance','Factory — delegate object creation','Builder — construct complex objects step-by-step','Abstract Factory — families of related objects']},
+              {cat:'Structural',desc:'Composing objects',items:['Adapter — wrap incompatible interface','Decorator — add behavior at runtime','Composite — treat items and collections uniformly','Facade — simplified interface to a subsystem','Proxy — surrogate that controls access']},
+              {cat:'Behavioral',desc:'Object communication',items:['Observer — pub/sub, event systems','Strategy — swap algorithms at runtime','Iterator — traverse without exposing internals','Command — encapsulate request as object (undo/redo)','Template Method — skeleton in base, steps in subclass','State — change behavior when state changes']},
+            ].map(g => (
+              <div key={g.cat} style={{background:'#f9fafb',border:'1px solid #e5e5e5',borderRadius:'6px',padding:'14px'}}>
+                <div style={{fontWeight:'700',fontSize:'13px',marginBottom:'2px'}}>{g.cat}</div>
+                <div style={{fontSize:'11px',color:'var(--muted)',marginBottom:'8px'}}>{g.desc}</div>
+                {g.items.map(it => <div key={it} style={{fontSize:'12.5px',color:'#374151',marginBottom:'3px'}}>• {it}</div>)}
+              </div>
+            ))}
+          </div>
+          <FoundCode>{`# Singleton
+class Singleton:
+    _instance = None
+    def __new__(cls):
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+# Strategy — swap algorithms at runtime
+class Sorter:
+    def __init__(self, strategy): self.strategy = strategy
+    def sort(self, data): return self.strategy(data)
+
+sorter = Sorter(sorted)                # inject any callable
+sorter = Sorter(lambda d: sorted(d, reverse=True))
+
+# Observer
+class EventEmitter:
+    def __init__(self): self._listeners = {}
+    def on(self, event, fn): self._listeners.setdefault(event, []).append(fn)
+    def emit(self, event, *args):
+        for fn in self._listeners.get(event, []): fn(*args)
+
+# Decorator (Python built-in pattern)
+def logging_decorator(func):
+    def wrapper(*args, **kwargs):
+        print(f"Calling {func.__name__}")
+        return func(*args, **kwargs)
+    return wrapper`}</FoundCode>
+        </FoundSection>
+      )}
+
+      {/* Complexity Quick Reference — always visible */}
+      <FoundSection title="Complexity Quick Reference">
+        <FoundTable
+          headers={['Structure','Access','Search','Insert','Delete']}
+          rows={[
+            ['Array','O(1)','O(n)','O(n)','O(n)'],
+            ['Linked List','O(n)','O(n)','O(1)','O(1)*'],
+            ['Hash Table','—','O(1) avg','O(1) avg','O(1) avg'],
+            ['BST (balanced)','—','O(log n)','O(log n)','O(log n)'],
+            ['Heap','—','O(n)','O(log n)','O(log n)'],
+            ['Stack / Queue','O(n)','O(n)','O(1)','O(1)'],
+            ['Trie','—','O(m)','O(m)','O(m)'],
+          ]}
+        />
+        <p style={{fontSize:'12px',color:'var(--muted)'}}>m = key length. * Linked list delete O(1) at known node; O(n) to find node first.</p>
+      </FoundSection>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
    SIDE TIMER (right edge, vertically centered)
 ═══════════════════════════════════════════════════════════ */
 
@@ -5708,8 +6238,8 @@ function SettingsTab() {
   );
 }
 
-// Tab indices: 0=Home 1={N}-Day Plan 2=Patterns 3=Flashcards 4=Problems 5=Mock Timer 6=Tips 7=Ritual 8=Reference 9=Data Structures 10=Algorithms 11=Focus 12=Settings
-const TABS = ['Home',`${PLAN_LENGTH}-Day Plan`,'Patterns','Flashcards','Problems','Mock Timer','Tips','Ritual','Reference','Data Structures','Algorithms','Focus','Settings'];
+// Tab indices: 0=Home 1={N}-Day Plan 2=Patterns 3=Flashcards 4=Problems 5=Mock Timer 6=Tips 7=Ritual 8=Reference 9=Data Structures 10=Algorithms 11=Foundations 12=Focus 13=Settings
+const TABS = ['Home',`${PLAN_LENGTH}-Day Plan`,'Patterns','Flashcards','Problems','Mock Timer','Tips','Ritual','Reference','Data Structures','Algorithms','Foundations','Focus','Settings'];
 const PROBLEMS_TAB = 4;
 const MOCK_TAB = 5;
 const FLASHCARDS_TAB = 3;
@@ -5728,6 +6258,7 @@ const TAB_CONTEXTS = [
   'I have a question about a Python idiom, gotcha, or template.',
   'I have a question about a data structure — its operations, complexity, or when to use it.',
   'I have a question about an algorithm — its approach, implementation, or trade-offs.',
+  'I have a question about a foundational CS concept — data structures, sorting, graphs, OOP, or design patterns.',
   'I have a question about focus techniques, retention, or how to study more effectively.',
   'I want to change my study plan settings.',
 ];
@@ -5759,6 +6290,7 @@ function App() {
     <Reference />,
     <DataStructures />,
     <Algorithms />,
+    <Foundations />,
     <FocusTab />,
     <SettingsTab />,
   ];
