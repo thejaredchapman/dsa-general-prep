@@ -3534,6 +3534,292 @@ const ALGO_LEETCODE = {
   ],
 };
 
+const PATTERN_GUIDE = [
+  { name:'Prefix Sum', pill:'#DBEAFE', pillText:'#1D4ED8',
+    trigger:'"range sum query", "subarray sum equals K", "running/cumulative total"',
+    desc:"Precompute a running-total array so any range sum becomes a single subtraction instead of a fresh loop. Turns repeated O(n) sum queries into O(1) lookups after one O(n) preprocessing pass.",
+    sample:{ title:'Range Sum Query — sum of nums[i..j]',
+      input:'nums = [1, 2, 3, 4, 5, 6], i = 1, j = 3', output:'9',
+      steps:[
+        'Build a prefix array P where P[k] = sum of nums[0..k-1]: P = [0, 1, 3, 6, 10, 15, 21]',
+        'Range sum [i, j] = P[j+1] - P[i]',
+        'P[4] - P[1] = 10 - 1 = 9',
+      ]},
+    leetcode:[
+      { name:'Range Sum Query - Immutable', num:303, diff:E, slug:'range-sum-query-immutable' },
+      { name:'Find Pivot Index', num:724, diff:E, slug:'find-pivot-index' },
+      { name:'Contiguous Array', num:525, diff:M, slug:'contiguous-array' },
+      { name:'Subarray Sum Equals K', num:560, diff:M, slug:'subarray-sum-equals-k' },
+      { name:'Continuous Subarray Sum', num:523, diff:M, slug:'continuous-subarray-sum' },
+      { name:'Product of Array Except Self', num:238, diff:M, slug:'product-of-array-except-self' },
+      { name:'Range Sum Query 2D - Immutable', num:304, diff:M, slug:'range-sum-query-2d-immutable' },
+    ]},
+  { name:'Two Pointers', pill:'#D1FAE5', pillText:'#065F46',
+    trigger:'"sorted array", "pair / triplet sum", "palindrome check", "remove duplicates in place"',
+    desc:"Walk two indices through the array — typically from opposite ends inward — instead of checking every pair with nested loops. On a sorted array, moving the wrong pointer can never produce a better answer, so each step provably narrows the search.",
+    sample:{ title:'Pair with Target Sum (sorted array)',
+      input:'nums = [1, 2, 3, 4, 6], target = 6', output:'[1, 3]',
+      steps:[
+        'left = 0, right = len(nums) - 1',
+        'If nums[left] + nums[right] == target, return [left, right]',
+        'If the sum is too small, move left forward to increase it',
+        'If the sum is too large, move right backward to decrease it',
+      ]},
+    leetcode:[
+      { name:'Two Sum II - Input Array Is Sorted', num:167, diff:M, slug:'two-sum-ii-input-array-is-sorted' },
+      { name:'Valid Palindrome', num:125, diff:E, slug:'valid-palindrome' },
+      { name:'3Sum', num:15, diff:M, slug:'3sum' },
+      { name:'3Sum Closest', num:16, diff:M, slug:'3sum-closest' },
+      { name:'Container With Most Water', num:11, diff:M, slug:'container-with-most-water' },
+      { name:'Sort Colors', num:75, diff:M, slug:'sort-colors' },
+      { name:'Trapping Rain Water', num:42, diff:H, slug:'trapping-rain-water' },
+    ]},
+  { name:'Sliding Window', pill:'#FEF9C3', pillText:'#713F12',
+    trigger:'"longest/shortest substring or subarray", "fixed-size window", "subarray with a constraint"',
+    desc:"Maintain a window [left, right] over the array or string. Expand right to grow it, shrink left when it becomes invalid. Each element enters and leaves the window at most once, giving O(n) instead of O(n²).",
+    sample:{ title:'Maximum Sum Subarray of Size K',
+      input:'nums = [2, 1, 5, 1, 3, 2], k = 3', output:'9',
+      steps:[
+        'Sum the first k elements to seed the window: 2 + 1 + 5 = 8',
+        'Slide right one step at a time: add the entering element, subtract the one leaving',
+        'Track the max window sum seen — best is 5 + 1 + 3 = 9',
+      ]},
+    leetcode:[
+      { name:'Maximum Average Subarray I', num:643, diff:E, slug:'maximum-average-subarray-i' },
+      { name:'Longest Substring Without Repeating Characters', num:3, diff:M, slug:'longest-substring-without-repeating-characters' },
+      { name:'Minimum Size Subarray Sum', num:209, diff:M, slug:'minimum-size-subarray-sum' },
+      { name:'Longest Repeating Character Replacement', num:424, diff:M, slug:'longest-repeating-character-replacement' },
+      { name:'Permutation in String', num:567, diff:M, slug:'permutation-in-string' },
+      { name:'Minimum Window Substring', num:76, diff:H, slug:'minimum-window-substring' },
+      { name:'Sliding Window Maximum', num:239, diff:H, slug:'sliding-window-maximum' },
+    ]},
+  { name:'Fast & Slow Pointers', pill:'#FCE7F3', pillText:'#831843',
+    trigger:'"cycle in a linked list / sequence", "find the middle node", "detect a repeating sequence"',
+    desc:"Move two pointers through a sequence at different speeds (1 step vs 2 steps). If a cycle exists, the fast pointer eventually laps the slow one and they meet — no extra memory needed to track visited nodes.",
+    sample:{ title:'Linked List Cycle Detection',
+      input:'head = 3 -> 2 -> 0 -> -4 -> (back to node 2)', output:'true',
+      steps:[
+        'slow advances 1 node per step, fast advances 2 nodes per step',
+        'If fast reaches null (or fast.next is null), there is no cycle',
+        'If slow and fast ever land on the same node, a cycle exists',
+      ]},
+    leetcode:[
+      { name:'Linked List Cycle', num:141, diff:E, slug:'linked-list-cycle' },
+      { name:'Middle of the Linked List', num:876, diff:E, slug:'middle-of-the-linked-list' },
+      { name:'Happy Number', num:202, diff:E, slug:'happy-number' },
+      { name:'Palindrome Linked List', num:234, diff:E, slug:'palindrome-linked-list' },
+      { name:'Linked List Cycle II', num:142, diff:M, slug:'linked-list-cycle-ii' },
+      { name:'Find the Duplicate Number', num:287, diff:M, slug:'find-the-duplicate-number' },
+    ]},
+  { name:'LinkedList In-place Reversal', pill:'#EDE9FE', pillText:'#5B21B6',
+    trigger:'"reverse a linked list", "reverse between positions m and n", "reverse in groups of k"',
+    desc:"Reverse a section of a linked list in a single pass by redirecting each node's next pointer to the previous node — no new list allocation needed.",
+    sample:{ title:'Reverse Sublist from position m to n',
+      input:'head = [1, 2, 3, 4, 5], m = 2, n = 4', output:'[1, 4, 3, 2, 5]',
+      steps:[
+        'Walk to the node just before position m and save it as "before"',
+        'Reverse the m..n sublist in place by repeatedly redirecting next pointers',
+        'Reconnect "before" to the new head of the sublist, and the old head of the sublist to the node after n',
+      ]},
+    leetcode:[
+      { name:'Reverse Linked List', num:206, diff:E, slug:'reverse-linked-list' },
+      { name:'Reverse Linked List II', num:92, diff:M, slug:'reverse-linked-list-ii' },
+      { name:'Swap Nodes in Pairs', num:24, diff:M, slug:'swap-nodes-in-pairs' },
+      { name:'Rotate List', num:61, diff:M, slug:'rotate-list' },
+      { name:'Reorder List', num:143, diff:M, slug:'reorder-list' },
+      { name:'Reverse Nodes in k-Group', num:25, diff:H, slug:'reverse-nodes-in-k-group' },
+    ]},
+  { name:'Monotonic Stack', pill:'#FFEDD5', pillText:'#9A3412',
+    trigger:'"next/previous greater or smaller element", "daily temperatures", "largest rectangle"',
+    desc:"Keep a stack of indices whose values stay in increasing (or decreasing) order. When a new element breaks that order, pop and resolve the popped elements against it. Each element is pushed and popped at most once, so the total work is O(n).",
+    sample:{ title:'Next Greater Element for Every Index',
+      input:'nums = [2, 1, 2, 4, 3]', output:'[4, 2, 4, -1, -1]',
+      steps:[
+        'Push indices onto a stack while scanning left to right',
+        "When nums[i] > nums[stack top], pop the stack and set that index's answer to nums[i]",
+        'Push i. Anything left on the stack at the end has no greater element -> -1',
+      ]},
+    leetcode:[
+      { name:'Next Greater Element I', num:496, diff:E, slug:'next-greater-element-i' },
+      { name:'Daily Temperatures', num:739, diff:M, slug:'daily-temperatures' },
+      { name:'Next Greater Element II', num:503, diff:M, slug:'next-greater-element-ii' },
+      { name:'Online Stock Span', num:901, diff:M, slug:'online-stock-span' },
+      { name:'Remove K Digits', num:402, diff:M, slug:'remove-k-digits' },
+      { name:'Trapping Rain Water', num:42, diff:H, slug:'trapping-rain-water' },
+      { name:'Largest Rectangle in Histogram', num:84, diff:H, slug:'largest-rectangle-in-histogram' },
+    ]},
+  { name:"Top 'K' Elements", pill:'#CCFBF1', pillText:'#0F766E',
+    trigger:'"kth largest/smallest", "top K frequent", "K closest points"',
+    desc:"Use a heap of size K (or quickselect) instead of fully sorting the data. A min-heap keeps the K largest values seen so far — anything smaller than the heap's minimum can be discarded immediately.",
+    sample:{ title:'Kth Largest Element in an Array',
+      input:'nums = [3, 2, 1, 5, 6, 4], k = 2', output:'5',
+      steps:[
+        'Maintain a min-heap of size k',
+        'Push each element; if the heap grows past size k, pop the smallest',
+        'After processing all elements, the heap top is the kth largest',
+      ]},
+    leetcode:[
+      { name:'Kth Largest Element in an Array', num:215, diff:M, slug:'kth-largest-element-in-an-array' },
+      { name:'K Closest Points to Origin', num:973, diff:M, slug:'k-closest-points-to-origin' },
+      { name:'Top K Frequent Elements', num:347, diff:M, slug:'top-k-frequent-elements' },
+      { name:'Top K Frequent Words', num:692, diff:M, slug:'top-k-frequent-words' },
+      { name:'Kth Smallest Element in a Sorted Matrix', num:378, diff:M, slug:'kth-smallest-element-in-a-sorted-matrix' },
+      { name:'Find K Pairs with Smallest Sums', num:373, diff:M, slug:'find-k-pairs-with-smallest-sums' },
+    ]},
+  { name:'Overlapping Intervals', pill:'#FEE2E2', pillText:'#991B1B',
+    trigger:'"merge intervals", "insert an interval", "scheduling / meeting room conflicts"',
+    desc:"Sort intervals by start time, then sweep through them once. Two intervals [a,b] and [c,d] overlap when b >= c — merge them by extending the end time, otherwise start a new interval.",
+    sample:{ title:'Merge All Overlapping Intervals',
+      input:'intervals = [[1,3],[2,6],[8,10],[15,18]]', output:'[[1,6],[8,10],[15,18]]',
+      steps:[
+        'Sort intervals by start time',
+        'Compare each interval to the last one added to the merged list',
+        'If they overlap, extend the last interval\'s end time; otherwise append a new interval',
+      ]},
+    leetcode:[
+      { name:'Merge Intervals', num:56, diff:M, slug:'merge-intervals' },
+      { name:'Insert Interval', num:57, diff:M, slug:'insert-interval' },
+      { name:'Non-overlapping Intervals', num:435, diff:M, slug:'non-overlapping-intervals' },
+      { name:'Meeting Rooms II', num:253, diff:M, slug:'meeting-rooms-ii' },
+      { name:'Minimum Number of Arrows to Burst Balloons', num:452, diff:M, slug:'minimum-number-of-arrows-to-burst-balloons' },
+      { name:'Interval List Intersections', num:986, diff:M, slug:'interval-list-intersections' },
+    ]},
+  { name:'Modified Binary Search', pill:'#E0E7FF', pillText:'#3730A3',
+    trigger:'"rotated sorted array", "find a boundary / first-last position", "search a sorted 2D matrix"',
+    desc:"Adapt binary search's halving logic to arrays that aren't fully sorted but have a sorted structure (e.g. one half of a rotated array is always sorted). Determine which half is sorted, check whether the target falls in that range, and recurse into the correct half.",
+    sample:{ title:'Search in Rotated Sorted Array',
+      input:'nums = [4, 5, 6, 7, 0, 1, 2], target = 0', output:'4',
+      steps:[
+        'Compute mid — one of [left..mid] or [mid..right] is always normally sorted',
+        "Check whether target lies within that sorted half's value range",
+        'If it does, search that half; otherwise search the other half',
+      ]},
+    leetcode:[
+      { name:'Search in Rotated Sorted Array', num:33, diff:M, slug:'search-in-rotated-sorted-array' },
+      { name:'Find Minimum in Rotated Sorted Array', num:153, diff:M, slug:'find-minimum-in-rotated-sorted-array' },
+      { name:'Find First and Last Position of Element in Sorted Array', num:34, diff:M, slug:'find-first-and-last-position-of-element-in-sorted-array' },
+      { name:'Search a 2D Matrix', num:74, diff:M, slug:'search-a-2d-matrix' },
+      { name:'Search a 2D Matrix II', num:240, diff:M, slug:'search-a-2d-matrix-ii' },
+      { name:'Koko Eating Bananas', num:875, diff:M, slug:'koko-eating-bananas' },
+      { name:'Median of Two Sorted Arrays', num:4, diff:H, slug:'median-of-two-sorted-arrays' },
+    ]},
+  { name:'Binary Tree Traversal', pill:'#DCFCE7', pillText:'#166534',
+    trigger:'"preorder/inorder/postorder", "serialize a tree", "process subtrees bottom-up"',
+    desc:"Visit every node in a defined order. Preorder (root, left, right) suits copying/serializing; inorder (left, root, right) yields sorted output for a BST; postorder (left, right, root) suits problems where a node depends on results from its children.",
+    sample:{ title:'Inorder Traversal of a Binary Tree',
+      input:'root = [1, null, 2, 3]', output:'[1, 3, 2]',
+      steps:[
+        'Inorder visits: left subtree, then the node, then right subtree',
+        'Recurse left until null, visit the node, then recurse right',
+        'For a BST, inorder traversal produces values in sorted order',
+      ]},
+    leetcode:[
+      { name:'Binary Tree Inorder Traversal', num:94, diff:E, slug:'binary-tree-inorder-traversal' },
+      { name:'Binary Tree Preorder Traversal', num:144, diff:E, slug:'binary-tree-preorder-traversal' },
+      { name:'Binary Tree Postorder Traversal', num:145, diff:E, slug:'binary-tree-postorder-traversal' },
+      { name:'Binary Tree Paths', num:257, diff:E, slug:'binary-tree-paths' },
+      { name:'Kth Smallest Element in a BST', num:230, diff:M, slug:'kth-smallest-element-in-a-bst' },
+      { name:'Construct Binary Tree from Preorder and Inorder Traversal', num:105, diff:M, slug:'construct-binary-tree-from-preorder-and-inorder-traversal' },
+      { name:'Binary Tree Maximum Path Sum', num:124, diff:H, slug:'binary-tree-maximum-path-sum' },
+    ]},
+  { name:'Depth-First Search (DFS)', pill:'#FFE4E6', pillText:'#9F1239',
+    trigger:'"explore every path", "connected components", "cycle detection in a directed graph"',
+    desc:"Go as deep as possible along each branch before backtracking, using recursion or an explicit stack. A visited set prevents revisiting nodes in graphs with cycles.",
+    sample:{ title:'All Root-to-Leaf Paths',
+      input:'root = [1, 2, 3, null, 5]', output:'["1->2->5", "1->3"]',
+      steps:[
+        'Recurse down each branch, appending the current node to the path',
+        'When a leaf is reached, record the accumulated path',
+        'Backtrack (drop the last node) when returning up the call stack',
+      ]},
+    leetcode:[
+      { name:'Path Sum', num:112, diff:E, slug:'path-sum' },
+      { name:'Clone Graph', num:133, diff:M, slug:'clone-graph' },
+      { name:'Path Sum II', num:113, diff:M, slug:'path-sum-ii' },
+      { name:'Number of Provinces', num:547, diff:M, slug:'number-of-provinces' },
+      { name:'Course Schedule II', num:210, diff:M, slug:'course-schedule-ii' },
+      { name:'Word Search', num:79, diff:M, slug:'word-search' },
+      { name:'All Paths From Source to Target', num:797, diff:M, slug:'all-paths-from-source-to-target' },
+    ]},
+  { name:'Breadth-First Search (BFS)', pill:'#E0F2FE', pillText:'#075985',
+    trigger:'"shortest path in an unweighted graph", "level-order traversal", "minimum number of steps/transformations"',
+    desc:"Explore a tree or graph level by level using a queue. Because BFS visits nodes in order of distance from the start, the first time it reaches a target is guaranteed to be the shortest path.",
+    sample:{ title:'Binary Tree Level Order Traversal',
+      input:'root = [3, 9, 20, null, null, 15, 7]', output:'[[3], [9, 20], [15, 7]]',
+      steps:[
+        'Push the root into a queue',
+        'For each level, pop exactly queue.length nodes and push their children',
+        "Collect each level's values into its own list",
+      ]},
+    leetcode:[
+      { name:'Binary Tree Level Order Traversal', num:102, diff:M, slug:'binary-tree-level-order-traversal' },
+      { name:'Binary Tree Right Side View', num:199, diff:M, slug:'binary-tree-right-side-view' },
+      { name:'Find Largest Value in Each Tree Row', num:515, diff:M, slug:'find-largest-value-in-each-tree-row' },
+      { name:'Rotting Oranges', num:994, diff:M, slug:'rotting-oranges' },
+      { name:'01 Matrix', num:542, diff:M, slug:'01-matrix' },
+      { name:'Snakes and Ladders', num:909, diff:M, slug:'snakes-and-ladders' },
+      { name:'Word Ladder', num:127, diff:H, slug:'word-ladder' },
+    ]},
+  { name:'Matrix Traversal', pill:'#FEF3C7', pillText:'#92400E',
+    trigger:'"flood fill", "islands / connected regions in a grid", "surrounded regions"',
+    desc:"Treat each grid cell as a graph node connected to its (usually 4) neighbors, then run DFS or BFS from a starting cell — marking visited cells so you never process the same one twice.",
+    sample:{ title:'Flood Fill',
+      input:'image = [[1,1,1],[1,1,0],[1,0,1]], sr = 1, sc = 1, newColor = 2', output:'[[2,2,2],[2,2,0],[2,0,1]]',
+      steps:[
+        'Start DFS/BFS from (sr, sc), recording the original color',
+        'For each cell matching the original color, set it to newColor and visit its 4 neighbors',
+        "Stop expanding when a neighbor is out of bounds or doesn't match the original color",
+      ]},
+    leetcode:[
+      { name:'Flood Fill', num:733, diff:E, slug:'flood-fill' },
+      { name:'Number of Islands', num:200, diff:M, slug:'number-of-islands' },
+      { name:'Max Area of Island', num:695, diff:M, slug:'max-area-of-island' },
+      { name:'Surrounded Regions', num:130, diff:M, slug:'surrounded-regions' },
+      { name:'Spiral Matrix', num:54, diff:M, slug:'spiral-matrix' },
+      { name:'Pacific Atlantic Water Flow', num:417, diff:M, slug:'pacific-atlantic-water-flow' },
+      { name:'Word Search', num:79, diff:M, slug:'word-search' },
+    ]},
+  { name:'Backtracking', pill:'#F3E8FF', pillText:'#6B21A8',
+    trigger:'"generate all permutations/combinations/subsets", "constraint satisfaction (N-Queens, Sudoku)"',
+    desc:"Build a solution incrementally and abandon (\"backtrack\") a path as soon as it can't lead to a valid result. Used for any \"find all ways to...\" problem with combinatorial choices.",
+    sample:{ title:'All Permutations of a List',
+      input:'nums = [1, 2, 3]', output:'[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]',
+      steps:[
+        'Pick an unused number and add it to the current permutation',
+        'Recurse to fill the remaining positions',
+        'Remove the number (backtrack) and try the next option once the recursive call returns',
+      ]},
+    leetcode:[
+      { name:'Subsets', num:78, diff:M, slug:'subsets' },
+      { name:'Permutations', num:46, diff:M, slug:'permutations' },
+      { name:'Combination Sum', num:39, diff:M, slug:'combination-sum' },
+      { name:'Generate Parentheses', num:22, diff:M, slug:'generate-parentheses' },
+      { name:'Palindrome Partitioning', num:131, diff:M, slug:'palindrome-partitioning' },
+      { name:'Word Search', num:79, diff:M, slug:'word-search' },
+      { name:'N-Queens', num:51, diff:H, slug:'n-queens' },
+    ]},
+  { name:'Dynamic Programming Patterns', pill:'#F3F4F6', pillText:'#374151',
+    trigger:'"minimum/maximum result", "count the number of ways", "can you reach/partition the target"',
+    desc:"Break a problem into overlapping subproblems with optimal substructure, then solve each one once (top-down with memoization, or bottom-up with a table) and reuse the results. Common shapes: Fibonacci-style 1D DP, 0/1 knapsack, unbounded knapsack (coin change), LCS/LIS, and matrix chain DP.",
+    sample:{ title:'n-th Fibonacci Number',
+      input:'n = 5', output:'5',
+      steps:[
+        'dp[0] = 0, dp[1] = 1 are the base cases',
+        'For i from 2 to n: dp[i] = dp[i-1] + dp[i-2]',
+        'dp = [0, 1, 1, 2, 3, 5] -> dp[5] = 5',
+      ]},
+    leetcode:[
+      { name:'Climbing Stairs (Fibonacci)', num:70, diff:E, slug:'climbing-stairs' },
+      { name:'House Robber (Fibonacci)', num:198, diff:M, slug:'house-robber' },
+      { name:'Coin Change (Unbounded Knapsack)', num:322, diff:M, slug:'coin-change' },
+      { name:'Coin Change II (Unbounded Knapsack)', num:518, diff:M, slug:'coin-change-ii' },
+      { name:'Partition Equal Subset Sum (0/1 Knapsack)', num:416, diff:M, slug:'partition-equal-subset-sum' },
+      { name:'Longest Increasing Subsequence (LIS)', num:300, diff:M, slug:'longest-increasing-subsequence' },
+      { name:'Longest Common Subsequence (LCS)', num:1143, diff:M, slug:'longest-common-subsequence' },
+      { name:'Edit Distance', num:72, diff:H, slug:'edit-distance' },
+    ]},
+];
+
 /* ═══════════════════════════════════════════════════════════
    UTILITIES
 ═══════════════════════════════════════════════════════════ */
@@ -6017,6 +6303,56 @@ def logging_decorator(func):
 }
 
 /* ═══════════════════════════════════════════════════════════
+   TAB: PATTERN PLAYBOOK
+═══════════════════════════════════════════════════════════ */
+
+function PatternSample({ sample }) {
+  return (
+    <div style={{background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:'6px',padding:'12px 14px',marginBottom:'12px'}}>
+      <div className="lc-section-label" style={{marginBottom:'6px'}}>Sample Problem — {sample.title}</div>
+      <pre className="template-code" style={{marginBottom:'8px'}}>{`Input:  ${sample.input}\nOutput: ${sample.output}`}</pre>
+      <ul style={{margin:0,paddingLeft:'18px',fontSize:'12.5px',color:'#4b5563',lineHeight:'1.7'}}>
+        {sample.steps.map((s,i) => <li key={i}>{s}</li>)}
+      </ul>
+    </div>
+  );
+}
+
+function PatternCard({ pattern, num }) {
+  return (
+    <div style={{background:'#fff',border:'1px solid #e5e5e5',borderRadius:'8px',padding:'20px',marginBottom:'16px'}}>
+      <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'10px',flexWrap:'wrap'}}>
+        <span className="pattern-pill" style={{background:pattern.pill,color:pattern.pillText,minWidth:'24px',textAlign:'center'}}>{num}</span>
+        <div className="ref-section-title" style={{marginBottom:0}}>{pattern.name}</div>
+      </div>
+      <p style={{fontSize:'12px',color:'var(--muted)',marginBottom:'8px'}}><strong>Use when:</strong> {pattern.trigger}</p>
+      <p style={{fontSize:'13px',color:'#4b5563',marginBottom:'12px'}}>{pattern.desc}</p>
+      <PatternSample sample={pattern.sample} />
+      <LCProblems problems={pattern.leetcode} />
+    </div>
+  );
+}
+
+function PatternGuide() {
+  const [sel, setSel] = useState(null);
+  const visible = sel ? PATTERN_GUIDE.filter(p => p.name === sel) : PATTERN_GUIDE;
+  return (
+    <div>
+      <div className="section-title" style={{marginBottom:'6px'}}>Pattern Playbook</div>
+      <p style={{fontSize:'13px',color:'var(--muted)',marginBottom:'12px'}}>15 patterns that cover the majority of LeetCode problems — what to look for, a worked example, and curated problems to practice each one.</p>
+      <div className="filter-bar" style={{marginBottom:'20px',flexWrap:'wrap',gap:'6px'}}>
+        <button className={`filter-btn${sel===null?' active':''}`} onClick={() => setSel(null)}>All</button>
+        {PATTERN_GUIDE.map(p => (
+          <button key={p.name} className={`filter-btn${sel===p.name?' active':''}`}
+            onClick={() => setSel(s => s===p.name ? null : p.name)}>{p.name}</button>
+        ))}
+      </div>
+      {visible.map(p => <PatternCard key={p.name} pattern={p} num={PATTERN_GUIDE.indexOf(p) + 1} />)}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
    SIDE TIMER (right edge, vertically centered)
 ═══════════════════════════════════════════════════════════ */
 
@@ -6238,8 +6574,8 @@ function SettingsTab() {
   );
 }
 
-// Tab indices: 0=Home 1={N}-Day Plan 2=Patterns 3=Flashcards 4=Problems 5=Mock Timer 6=Tips 7=Ritual 8=Reference 9=Data Structures 10=Algorithms 11=Foundations 12=Focus 13=Settings
-const TABS = ['Home',`${PLAN_LENGTH}-Day Plan`,'Patterns','Flashcards','Problems','Mock Timer','Tips','Ritual','Reference','Data Structures','Algorithms','Foundations','Focus','Settings'];
+// Tab indices: 0=Home 1={N}-Day Plan 2=Patterns 3=Flashcards 4=Problems 5=Mock Timer 6=Tips 7=Ritual 8=Reference 9=Data Structures 10=Algorithms 11=Foundations 12=Pattern Playbook 13=Focus 14=Settings
+const TABS = ['Home',`${PLAN_LENGTH}-Day Plan`,'Patterns','Flashcards','Problems','Mock Timer','Tips','Ritual','Reference','Data Structures','Algorithms','Foundations','Pattern Playbook','Focus','Settings'];
 const PROBLEMS_TAB = 4;
 const MOCK_TAB = 5;
 const FLASHCARDS_TAB = 3;
@@ -6259,6 +6595,7 @@ const TAB_CONTEXTS = [
   'I have a question about a data structure — its operations, complexity, or when to use it.',
   'I have a question about an algorithm — its approach, implementation, or trade-offs.',
   'I have a question about a foundational CS concept — data structures, sorting, graphs, OOP, or design patterns.',
+  'I have a question about one of the 15 core patterns, when to use it, or which problems to practice.',
   'I have a question about focus techniques, retention, or how to study more effectively.',
   'I want to change my study plan settings.',
 ];
@@ -6291,6 +6628,7 @@ function App() {
     <DataStructures />,
     <Algorithms />,
     <Foundations />,
+    <PatternGuide />,
     <FocusTab />,
     <SettingsTab />,
   ];
