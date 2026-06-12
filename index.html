@@ -2526,6 +2526,333 @@ const PROBLEMS = [
         {c:'        return best',n:''},
       ]},
   },
+  { id:58, day:61, title:'LFU Cache', diff:'hard', pat:'hash map + frequency buckets', tags:['hard','design'],
+    desc:'Design a Least Frequently Used (LFU) cache. On eviction, remove the least frequently used key; break ties by evicting the least recently used among those. get and put run in O(1).',
+    brute:{ time:'O(n) put (eviction scan)', space:'O(capacity)', what:'Track value, frequency, and last-used time per key in separate dicts. On eviction, scan all keys for the min (freq, time) pair — correct but O(n) per eviction.',
+      lines:[
+        {c:'class LFUCacheBrute:',n:'Dicts only — eviction needs a full scan.'},
+        {c:'    def __init__(self, capacity):',n:''},
+        {c:'        self.cap = capacity',n:''},
+        {c:'        self.val = {}',n:'key -> value'},
+        {c:'        self.freq = {}',n:'key -> use count'},
+        {c:'        self.time = {}',n:'key -> last-used tick (tiebreaker)'},
+        {c:'        self.clock = 0',n:''},
+        {c:'    def get(self, key):',n:''},
+        {c:'        if key not in self.val: return -1',n:''},
+        {c:'        self.clock += 1',n:''},
+        {c:'        self.freq[key] += 1; self.time[key] = self.clock',n:'Mark accessed.'},
+        {c:'        return self.val[key]',n:''},
+        {c:'    def put(self, key, value):',n:''},
+        {c:'        if self.cap == 0: return',n:''},
+        {c:'        if key not in self.val and len(self.val) >= self.cap:',n:'Need to evict.'},
+        {c:'            evict = min(self.val, key=lambda k: (self.freq[k], self.time[k]))',n:'O(n) scan for min freq, oldest time.'},
+        {c:'            del self.val[evict]; del self.freq[evict]; del self.time[evict]',n:''},
+        {c:'        self.clock += 1',n:''},
+        {c:'        self.val[key] = value',n:''},
+        {c:'        self.freq[key] = self.freq.get(key, 0) + 1',n:''},
+        {c:'        self.time[key] = self.clock',n:''},
+      ]},
+    optimal:{ time:'O(1) all ops', space:'O(capacity)', what:'Key -> value/frequency maps plus a frequency -> OrderedDict-of-keys map (LRU order within a frequency tier), and a running min_freq pointer. Every get/put moves a key to the next frequency tier in O(1).',
+      lines:[
+        {c:'from collections import OrderedDict, defaultdict',n:''},
+        {c:'class LFUCache:',n:'Buckets by frequency — O(1) all ops.'},
+        {c:'    def __init__(self, capacity):',n:''},
+        {c:'        self.cap = capacity',n:''},
+        {c:'        self.min_freq = 0',n:''},
+        {c:'        self.key_val = {}',n:'key -> value'},
+        {c:'        self.key_freq = {}',n:'key -> freq'},
+        {c:'        self.freq_keys = defaultdict(OrderedDict)',n:'freq -> {key: None}, oldest first'},
+        {c:'    def _bump(self, key):',n:'Move key to the next frequency tier.'},
+        {c:'        f = self.key_freq[key]',n:''},
+        {c:'        del self.freq_keys[f][key]',n:''},
+        {c:'        if not self.freq_keys[f] and f == self.min_freq:',n:'That tier is now empty — raise the floor.'},
+        {c:'            self.min_freq += 1',n:''},
+        {c:'        self.key_freq[key] = f + 1',n:''},
+        {c:'        self.freq_keys[f + 1][key] = None',n:''},
+        {c:'    def get(self, key):',n:''},
+        {c:'        if key not in self.key_val: return -1',n:''},
+        {c:'        self._bump(key)',n:''},
+        {c:'        return self.key_val[key]',n:''},
+        {c:'    def put(self, key, value):',n:''},
+        {c:'        if self.cap == 0: return',n:''},
+        {c:'        if key in self.key_val:',n:''},
+        {c:'            self.key_val[key] = value; self._bump(key)',n:'Update + count as a use.'},
+        {c:'            return',n:''},
+        {c:'        if len(self.key_val) >= self.cap:',n:''},
+        {c:'            evict, _ = self.freq_keys[self.min_freq].popitem(last=False)',n:'Least frequent, then least recently used.'},
+        {c:'            del self.key_val[evict]; del self.key_freq[evict]',n:''},
+        {c:'        self.key_val[key] = value',n:''},
+        {c:'        self.key_freq[key] = 1',n:''},
+        {c:'        self.freq_keys[1][key] = None',n:''},
+        {c:'        self.min_freq = 1',n:'New key always starts the new minimum tier.'},
+      ]},
+  },
+  { id:59, day:62, title:'Flatten Nested List Iterator', diff:'medium', pat:'stack-based lazy iterator', tags:['medium','design'],
+    desc:'A NestedInteger is either an integer or a list of NestedIntegers, arbitrarily nested. Implement an iterator with hasNext() and next() that flattens it into a sequence of integers.',
+    brute:{ time:'O(n) upfront, O(1) per call after', space:'O(n)', what:'Recursively flatten everything into a plain list up front, then walk it with an index pointer. Simple, but does all the work immediately even if the caller stops early.',
+      lines:[
+        {c:'class NestedIteratorBrute:',n:'Eager — flattens everything immediately.'},
+        {c:'    def __init__(self, nestedList):',n:''},
+        {c:'        self.flat = []',n:''},
+        {c:'        self._flatten(nestedList)',n:''},
+        {c:'        self.i = 0',n:''},
+        {c:'    def _flatten(self, lst):',n:''},
+        {c:'        for item in lst:',n:''},
+        {c:'            if item.isInteger():',n:''},
+        {c:'                self.flat.append(item.getInteger())',n:''},
+        {c:'            else:',n:''},
+        {c:'                self._flatten(item.getList())',n:'Recurse into nested list.'},
+        {c:'    def next(self):',n:''},
+        {c:'        val = self.flat[self.i]; self.i += 1',n:''},
+        {c:'        return val',n:''},
+        {c:'    def hasNext(self):',n:''},
+        {c:'        return self.i < len(self.flat)',n:''},
+      ]},
+    optimal:{ time:'O(1) amortized per call', space:'O(d) where d = max nesting depth', what:'Push the list reversed onto a stack so the leftmost element is on top. hasNext() lazily unwraps nested lists — popping a list and pushing its (reversed) children back — until the top of the stack is a plain integer or the stack is empty.',
+      lines:[
+        {c:'class NestedIterator:',n:'Lazy stack — only unwraps as needed.'},
+        {c:'    def __init__(self, nestedList):',n:''},
+        {c:'        self.stack = list(reversed(nestedList))',n:'Reversed so leftmost ends up on top.'},
+        {c:'    def hasNext(self):',n:''},
+        {c:'        while self.stack:',n:''},
+        {c:'            top = self.stack[-1]',n:''},
+        {c:'            if top.isInteger():',n:''},
+        {c:'                return True',n:''},
+        {c:'            self.stack.pop()',n:'It is a list — unwrap it.'},
+        {c:'            self.stack.extend(reversed(top.getList()))',n:'Push children so leftmost is on top again.'},
+        {c:'        return False',n:''},
+        {c:'    def next(self):',n:''},
+        {c:'        return self.stack.pop().getInteger()',n:'hasNext() guarantees top is an integer here.'},
+      ]},
+  },
+  { id:60, day:63, title:'Pow(x, n)', diff:'medium', pat:'binary exponentiation', tags:['medium','math'],
+    desc:'Implement pow(x, n) — compute x raised to the integer power n, where n may be negative.',
+    brute:{ time:'O(n)', space:'O(1)', what:'Multiply x by itself |n| times. For negative n, compute the positive power and invert.',
+      lines:[
+        {c:'def my_pow_brute(x, n):',n:'O(n) — one multiplication per unit of n.'},
+        {c:'    if n < 0:',n:''},
+        {c:'        x = 1 / x; n = -n',n:'x^-n = (1/x)^n.'},
+        {c:'    result = 1',n:''},
+        {c:'    for _ in range(n):',n:''},
+        {c:'        result *= x',n:''},
+        {c:'    return result',n:''},
+      ]},
+    optimal:{ time:'O(log n)', space:'O(log n) recursion', what:'Binary exponentiation: x^n = (x^(n//2))^2, with one extra factor of x if n is odd. Halving n each call gives O(log n) multiplications instead of O(n).',
+      lines:[
+        {c:'def my_pow(x, n):',n:'Fast exponentiation — O(log n).'},
+        {c:'    if n < 0:',n:''},
+        {c:'        x = 1 / x; n = -n',n:''},
+        {c:'    def helper(x, n):',n:''},
+        {c:'        if n == 0:',n:''},
+        {c:'            return 1.0',n:'Base case: anything^0 = 1.'},
+        {c:'        half = helper(x, n // 2)',n:'Compute x^(n//2) once.'},
+        {c:'        if n % 2 == 0:',n:''},
+        {c:'            return half * half',n:'Even n: square the half-power.'},
+        {c:'        return half * half * x',n:'Odd n: square it, then multiply one more x.'},
+        {c:'    return helper(x, n)',n:''},
+      ]},
+  },
+  { id:61, day:64, title:'Shuffle an Array', diff:'medium', pat:'Fisher-Yates shuffle', tags:['medium','design'],
+    desc:'Given an integer array, design an algorithm to shuffle it so that every permutation is equally likely, plus a reset() that restores the original array.',
+    brute:{ time:'O(n log n) per shuffle', space:'O(n)', what:'Pair each element with a random key and sort by that key. Produces a uniform random permutation, but pays an unnecessary log factor.',
+      lines:[
+        {c:'import random',n:''},
+        {c:'class SolutionBrute:',n:'Sort-by-random-key shuffle.'},
+        {c:'    def __init__(self, nums):',n:''},
+        {c:'        self.original = nums[:]',n:'Keep a copy for reset().'},
+        {c:'        self.array = nums[:]',n:''},
+        {c:'    def reset(self):',n:''},
+        {c:'        self.array = self.original[:]',n:''},
+        {c:'        return self.array',n:''},
+        {c:'    def shuffle(self):',n:''},
+        {c:'        self.array = [v for _, v in sorted((random.random(), v) for v in self.array)]',n:'O(n log n) sort by random keys.'},
+        {c:'        return self.array',n:''},
+      ]},
+    optimal:{ time:'O(n) per shuffle', space:'O(n)', what:'Fisher-Yates: walk from the last index to the first, swapping each element with a uniformly random element at or before its own position. Every permutation is equally likely, in one O(n) pass.',
+      lines:[
+        {c:'import random',n:''},
+        {c:'class Solution:',n:'Fisher-Yates — O(n) per shuffle.'},
+        {c:'    def __init__(self, nums):',n:''},
+        {c:'        self.original = nums[:]',n:''},
+        {c:'        self.array = nums[:]',n:''},
+        {c:'    def reset(self):',n:''},
+        {c:'        self.array = self.original[:]',n:''},
+        {c:'        return self.array',n:''},
+        {c:'    def shuffle(self):',n:''},
+        {c:'        for i in range(len(self.array) - 1, 0, -1):',n:'Walk backward from the last index.'},
+        {c:'            j = random.randint(0, i)',n:'Uniform random index in [0, i].'},
+        {c:'            self.array[i], self.array[j] = self.array[j], self.array[i]',n:'Swap into place.'},
+        {c:'        return self.array',n:''},
+      ]},
+  },
+  { id:62, day:65, title:'Maximum Gap', diff:'hard', pat:'bucket sort', tags:['hard','arrays'],
+    desc:'Given an integer array nums, return the maximum difference between two successive elements in its sorted form (0 if the array has fewer than 2 elements). Aim for O(n).',
+    brute:{ time:'O(n log n)', space:'O(n)', what:'Sort the array, then take the max difference between adjacent elements.',
+      lines:[
+        {c:'def maximum_gap_brute(nums):',n:'Sort then scan — O(n log n).'},
+        {c:'    if len(nums) < 2: return 0',n:''},
+        {c:'    nums.sort()',n:''},
+        {c:'    return max(b - a for a, b in zip(nums, nums[1:]))',n:'Max gap between adjacent sorted values.'},
+      ]},
+    optimal:{ time:'O(n)', space:'O(n)', what:'Bucket sort using the pigeonhole principle: with n numbers spanning [lo, hi], the true max gap is at least ceil((hi-lo)/(n-1)), so it can never occur inside a bucket of that size — only between buckets. Track each bucket\'s min/max and compare across consecutive non-empty buckets.',
+      lines:[
+        {c:'def maximum_gap(nums):',n:'Bucket sort — O(n).'},
+        {c:'    n = len(nums)',n:''},
+        {c:'    if n < 2: return 0',n:''},
+        {c:'    lo, hi = min(nums), max(nums)',n:''},
+        {c:'    if lo == hi: return 0',n:'All same value — gap is 0.'},
+        {c:'    size = max(1, (hi - lo) // (n - 1))',n:'Bucket width: guaranteed lower bound on the answer.'},
+        {c:'    count = (hi - lo) // size + 1',n:'Number of buckets.'},
+        {c:'    bmin = [None] * count',n:''},
+        {c:'    bmax = [None] * count',n:''},
+        {c:'    for num in nums:',n:''},
+        {c:'        idx = (num - lo) // size',n:''},
+        {c:'        if bmin[idx] is None or num < bmin[idx]: bmin[idx] = num',n:''},
+        {c:'        if bmax[idx] is None or num > bmax[idx]: bmax[idx] = num',n:''},
+        {c:'    result, prev_max = 0, lo',n:''},
+        {c:'    for i in range(count):',n:''},
+        {c:'        if bmin[i] is None: continue',n:'Empty bucket — the gap spans over it.'},
+        {c:'        result = max(result, bmin[i] - prev_max)',n:'Gap to the previous bucket.'},
+        {c:'        prev_max = bmax[i]',n:''},
+        {c:'    return result',n:''},
+      ]},
+  },
+  { id:63, day:69, title:'Max Points on a Line', diff:'hard', pat:'slope hashing', tags:['hard','arrays'],
+    desc:'Given an array of points on the X-Y plane, return the maximum number of points that lie on the same straight line.',
+    brute:{ time:'O(n³)', space:'O(1)', what:'For every pair of points, count how many of the remaining points are collinear with that pair using the cross product (avoids division/float error).',
+      lines:[
+        {c:'def max_points_brute(points):',n:'Check every pair against every other point — O(n^3).'},
+        {c:'    n = len(points)',n:''},
+        {c:'    if n <= 2: return n',n:''},
+        {c:'    best = 2',n:''},
+        {c:'    for i in range(n):',n:''},
+        {c:'        for j in range(i + 1, n):',n:''},
+        {c:'            count = 2',n:''},
+        {c:'            x1, y1 = points[i]; x2, y2 = points[j]',n:''},
+        {c:'            for k in range(n):',n:''},
+        {c:'                if k == i or k == j: continue',n:''},
+        {c:'                x3, y3 = points[k]',n:''},
+        {c:'                if (x2-x1)*(y3-y1) == (y2-y1)*(x3-x1):',n:'Cross product == 0 means collinear.'},
+        {c:'                    count += 1',n:''},
+        {c:'            best = max(best, count)',n:''},
+        {c:'    return best',n:''},
+      ]},
+    optimal:{ time:'O(n²)', space:'O(n)', what:'Fix each point i as a pivot. For every other point j, compute the slope of line (i, j) as a normalized (dx, dy) fraction in lowest terms, and count how many points share each slope. The best line through i has (max count) + 1 points (including i).',
+      lines:[
+        {c:'from collections import defaultdict',n:''},
+        {c:'from math import gcd',n:''},
+        {c:'def max_points(points):',n:'Slope hashing per pivot — O(n^2).'},
+        {c:'    n = len(points)',n:''},
+        {c:'    if n <= 2: return n',n:''},
+        {c:'    best = 1',n:''},
+        {c:'    for i in range(n):',n:'Pivot point.'},
+        {c:'        slopes = defaultdict(int)',n:''},
+        {c:'        for j in range(n):',n:''},
+        {c:'            if i == j: continue',n:''},
+        {c:'            dx = points[j][0] - points[i][0]',n:''},
+        {c:'            dy = points[j][1] - points[i][1]',n:''},
+        {c:'            if dx == 0:',n:''},
+        {c:'                key = (\'inf\', 0)',n:'Vertical line.'},
+        {c:'            else:',n:''},
+        {c:'                g = gcd(dx, dy)',n:''},
+        {c:'                dx, dy = dx // g, dy // g',n:'Reduce to lowest terms.'},
+        {c:'                if dx < 0: dx, dy = -dx, -dy',n:'Normalize sign so each slope has one key.'},
+        {c:'                key = (dx, dy)',n:''},
+        {c:'            slopes[key] += 1',n:''},
+        {c:'        best = max(best, max(slopes.values()) + 1)',n:'+1 to include the pivot itself.'},
+        {c:'    return best',n:''},
+      ]},
+  },
+  { id:64, day:70, title:'Kth Largest Element in an Array', diff:'medium', pat:'quickselect', tags:['medium','arrays'],
+    desc:'Find the kth largest element in an unsorted array (kth largest in sorted order, not the kth distinct value).',
+    brute:{ time:'O(n log n)', space:'O(n)', what:'Sort the array and index from the end.',
+      lines:[
+        {c:'def find_kth_largest_brute(nums, k):',n:'Sort — O(n log n).'},
+        {c:'    return sorted(nums)[-k]',n:'kth largest = (n-k)th smallest in ascending order.'},
+      ]},
+    optimal:{ time:'O(n) average, O(n²) worst', space:'O(1)', what:'Randomized quickselect: like quicksort, but only recurse into the partition that contains the target index, discarding the other side. A random pivot avoids the worst case on adversarial input.',
+      lines:[
+        {c:'import random',n:''},
+        {c:'def find_kth_largest(nums, k):',n:'Quickselect — O(n) average.'},
+        {c:'    target = len(nums) - k',n:'Index of the kth largest in ascending sorted order.'},
+        {c:'    def partition(left, right):',n:''},
+        {c:'        pivot_idx = random.randint(left, right)',n:'Random pivot avoids worst case.'},
+        {c:'        nums[pivot_idx], nums[right] = nums[right], nums[pivot_idx]',n:'Move pivot to the end.'},
+        {c:'        pivot = nums[right]',n:''},
+        {c:'        store = left',n:''},
+        {c:'        for i in range(left, right):',n:''},
+        {c:'            if nums[i] < pivot:',n:''},
+        {c:'                nums[i], nums[store] = nums[store], nums[i]',n:''},
+        {c:'                store += 1',n:''},
+        {c:'        nums[store], nums[right] = nums[right], nums[store]',n:'Place pivot in its final position.'},
+        {c:'        return store',n:''},
+        {c:'    left, right = 0, len(nums) - 1',n:''},
+        {c:'    while True:',n:''},
+        {c:'        p = partition(left, right)',n:''},
+        {c:'        if p == target: return nums[p]',n:'Found it.'},
+        {c:'        elif p < target: left = p + 1',n:'Target is to the right — discard the left side.'},
+        {c:'        else: right = p - 1',n:'Target is to the left — discard the right side.'},
+      ]},
+  },
+  { id:65, day:72, title:'Jump Game II', diff:'medium', pat:'greedy BFS layers', tags:['medium','greedy'],
+    desc:'Given an array where nums[i] is the max jump length from index i, return the minimum number of jumps to reach the last index. You may assume it is always reachable.',
+    brute:{ time:'O(n²)', space:'O(n)', what:'DP: dp[i] = minimum jumps to reach index i, found by checking every earlier index j that can jump far enough to reach i.',
+      lines:[
+        {c:'def jump_brute(nums):',n:'DP over all pairs — O(n^2).'},
+        {c:'    n = len(nums)',n:''},
+        {c:'    dp = [float(\'inf\')] * n',n:''},
+        {c:'    dp[0] = 0',n:''},
+        {c:'    for i in range(n):',n:''},
+        {c:'        for j in range(i):',n:''},
+        {c:'            if j + nums[j] >= i:',n:'Can j reach i in one jump?'},
+        {c:'                dp[i] = min(dp[i], dp[j] + 1)',n:''},
+        {c:'    return dp[n - 1]',n:''},
+      ]},
+    optimal:{ time:'O(n)', space:'O(1)', what:'Greedy BFS-by-layers: track the farthest index reachable within the current number of jumps (cur_end) and the farthest reachable with one more jump (farthest). When i reaches cur_end, that layer is exhausted — take another jump and extend cur_end.',
+      lines:[
+        {c:'def jump(nums):',n:'Greedy layer expansion — O(n).'},
+        {c:'    jumps = 0',n:''},
+        {c:'    cur_end = 0',n:'Farthest reachable with `jumps` jumps.'},
+        {c:'    farthest = 0',n:'Farthest reachable with `jumps + 1` jumps.'},
+        {c:'    for i in range(len(nums) - 1):',n:'Never need to "jump" from the last index.'},
+        {c:'        farthest = max(farthest, i + nums[i])',n:''},
+        {c:'        if i == cur_end:',n:'Exhausted the current layer.'},
+        {c:'            jumps += 1',n:''},
+        {c:'            cur_end = farthest',n:'Extend to the next layer.'},
+        {c:'    return jumps',n:''},
+      ]},
+  },
+  { id:66, day:73, title:'Longest Palindromic Substring', diff:'medium', pat:'expand around center', tags:['medium','strings'],
+    desc:'Given a string s, return the longest palindromic substring in s.',
+    brute:{ time:'O(n³)', space:'O(1)', what:'Check every substring for being a palindrome and keep the longest.',
+      lines:[
+        {c:'def longest_palindrome_brute(s):',n:'All substrings — O(n^3).'},
+        {c:'    n = len(s)',n:''},
+        {c:'    best = ""',n:''},
+        {c:'    for i in range(n):',n:''},
+        {c:'        for j in range(i, n):',n:''},
+        {c:'            sub = s[i:j+1]',n:''},
+        {c:'            if sub == sub[::-1] and len(sub) > len(best):',n:''},
+        {c:'                best = sub',n:''},
+        {c:'    return best',n:''},
+      ]},
+    optimal:{ time:'O(n²)', space:'O(1)', what:'Expand around every center (both odd-length centers at i and even-length centers between i and i+1) and track the longest palindrome found. (Manacher\'s algorithm gets this to O(n) by reusing previously computed radii, but expand-around-center is the standard interview solution.)',
+      lines:[
+        {c:'def longest_palindrome(s):',n:'Expand around every center — O(n^2).'},
+        {c:'    if not s: return ""',n:''},
+        {c:'    def expand(l, r):',n:'Expand outward while it stays a palindrome.'},
+        {c:'        while l >= 0 and r < len(s) and s[l] == s[r]:',n:''},
+        {c:'            l -= 1; r += 1',n:''},
+        {c:'        return l + 1, r - 1',n:'Bounds of the palindrome (after the overshoot).'},
+        {c:'    start, end = 0, 0',n:''},
+        {c:'    for i in range(len(s)):',n:''},
+        {c:'        l1, r1 = expand(i, i)',n:'Odd-length palindromes centered at i.'},
+        {c:'        if r1 - l1 > end - start: start, end = l1, r1',n:''},
+        {c:'        l2, r2 = expand(i, i + 1)',n:'Even-length palindromes centered between i, i+1.'},
+        {c:'        if r2 - l2 > end - start: start, end = l2, r2',n:''},
+        {c:'    return s[start:end + 1]',n:''},
+      ]},
+  },
 ];
 
 const TIPS = [
@@ -3553,7 +3880,33 @@ const PATTERN_GUIDE = [
       { name:'Continuous Subarray Sum', num:523, diff:M, slug:'continuous-subarray-sum' },
       { name:'Product of Array Except Self', num:238, diff:M, slug:'product-of-array-except-self' },
       { name:'Range Sum Query 2D - Immutable', num:304, diff:M, slug:'range-sum-query-2d-immutable' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "Prefix sums work because sum(i..j) = sum(0..j) - sum(0..i-1). Precomputing every sum(0..k) in one O(n) pass turns each later range-sum query into a single subtraction — O(1) instead of re-summing the range.",
+        "Build the array with prefix[0] = 0 and prefix[k] = prefix[k-1] + nums[k-1], so prefix has length n+1. That leading zero avoids special-casing i = 0.",
+        "Variants: prefix XOR for subarray-XOR queries, prefix counts combined with a hash map to turn 'count subarrays where X' into 'count pairs of equal prefix values' (Subarray Sum Equals K), and 2D prefix sums for submatrix queries.",
+        "Pitfall: forgetting the leading 0 causes off-by-one errors whenever the range starts at index 0.",
+      ],
+      cases:[
+        { title:'Typical — range sum query', input:'nums = [1, 2, 3, 4, 5, 6], find sum(1, 3)', output:'9',
+          trace:[
+            'Build prefix[0] = 0',
+            'prefix[1] = 0 + 1 = 1, prefix[2] = 1 + 2 = 3, prefix[3] = 3 + 3 = 6',
+            'prefix[4] = 6 + 4 = 10, prefix[5] = 10 + 5 = 15, prefix[6] = 15 + 6 = 21',
+            'prefix = [0, 1, 3, 6, 10, 15, 21]',
+            'sum(1, 3) = prefix[4] - prefix[1] = 10 - 1 = 9',
+          ]},
+        { title:'Edge case — count subarrays summing to 0 (prefix sum + hash map)', input:'nums = [1, -1, 0], k = 0', output:'3 subarrays',
+          trace:[
+            'Running prefix sums as we scan: 0 (start), 1, 0, 0',
+            'seen = {0: 1} before scanning (accounts for the empty prefix)',
+            'i=0: prefix=1, need prefix-k=1 -> not in seen, count=0; seen={0:1, 1:1}',
+            'i=1: prefix=0, need 0 -> seen[0]=1, count += 1 = 1; seen={0:2, 1:1}',
+            'i=2: prefix=0, need 0 -> seen[0]=2, count += 2 = 3; seen={0:3, 1:1}',
+            'Total = 3 -> the subarrays [1,-1], [0], and [1,-1,0] all sum to 0',
+          ]},
+      ]}},
   { name:'Two Pointers', pill:'#D1FAE5', pillText:'#065F46',
     trigger:'"sorted array", "pair / triplet sum", "palindrome check", "remove duplicates in place"',
     desc:"Walk two indices through the array — typically from opposite ends inward — instead of checking every pair with nested loops. On a sorted array, moving the wrong pointer can never produce a better answer, so each step provably narrows the search.",
@@ -3573,7 +3926,28 @@ const PATTERN_GUIDE = [
       { name:'Container With Most Water', num:11, diff:M, slug:'container-with-most-water' },
       { name:'Sort Colors', num:75, diff:M, slug:'sort-colors' },
       { name:'Trapping Rain Water', num:42, diff:H, slug:'trapping-rain-water' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "On a sorted array, if nums[left] + nums[right] is too large, the only way to decrease it is to move right left (it's the largest remaining value). If it's too small, the only way to increase it is to move left right. Every step provably eliminates at least one impossible pair, giving O(n) total instead of the O(n²) brute force.",
+        "Opposite-direction pointers (start and end moving toward each other) suit pair-sum and palindrome problems. Same-direction pointers (a slow and a fast index moving through the array at different rates) suit in-place removal/partitioning problems like removing duplicates or sorting colors.",
+        "3Sum reuses the pair-sum two-pointer scan inside an outer loop: fix one number, then two-pointer search the rest of the (sorted) array for a pair that sums to the remaining target — skipping duplicate values at every level to avoid duplicate triplets.",
+        "Pitfall: the opposite-ends variant requires sorted input. If the original order/indices matter, sort a copy of (value, index) pairs and map the answer back to original indices.",
+      ],
+      cases:[
+        { title:'Typical — pair with target sum', input:'nums = [1, 2, 3, 4, 6], target = 6', output:'[1, 3]',
+          trace:[
+            'left=0 (val=1), right=4 (val=6): sum=7 > 6 -> move right left',
+            'left=0 (val=1), right=3 (val=4): sum=5 < 6 -> move left right',
+            'left=1 (val=2), right=3 (val=4): sum=6 == 6 -> return [1, 3]',
+          ]},
+        { title:'Edge case — no pair exists', input:'nums = [1, 2, 3], target = 100', output:'[] (no pair)',
+          trace:[
+            'left=0 (val=1), right=2 (val=3): sum=4 < 100 -> move left right',
+            'left=1 (val=2), right=2 (val=3): sum=5 < 100 -> move left right',
+            'left=2, right=2: left == right -> loop ends with no match -> return []',
+          ]},
+      ]}},
   { name:'Sliding Window', pill:'#FEF9C3', pillText:'#713F12',
     trigger:'"longest/shortest substring or subarray", "fixed-size window", "subarray with a constraint"',
     desc:"Maintain a window [left, right] over the array or string. Expand right to grow it, shrink left when it becomes invalid. Each element enters and leaves the window at most once, giving O(n) instead of O(n²).",
@@ -3592,7 +3966,35 @@ const PATTERN_GUIDE = [
       { name:'Permutation in String', num:567, diff:M, slug:'permutation-in-string' },
       { name:'Minimum Window Substring', num:76, diff:H, slug:'minimum-window-substring' },
       { name:'Sliding Window Maximum', num:239, diff:H, slug:'sliding-window-maximum' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "The window [left, right] is always the current candidate. Expanding right means 'try including one more element'; shrinking left means 'give something up because the window is no longer valid (or no longer optimal)'. Because left only ever moves forward, each index enters and leaves the window at most once — O(n) total despite the nested-loop appearance.",
+        "Fixed-size windows (size k) slide by adding the new right element and removing the element k positions back in the same step. Variable-size windows grow until invalid, then shrink until valid again, recording the best size at each valid configuration.",
+        "What you track depends on the problem: a running sum (max subarray sum), a frequency map (longest substring without repeats), or a count of a property (max consecutive 1s after k flips).",
+        "Pitfall: when looking for the LONGEST valid window, update 'best' only while the window is valid. When looking for the SHORTEST valid window, update 'best' while shrinking a window that's still valid — shrinking too early or too late silently breaks the answer.",
+      ],
+      cases:[
+        { title:'Typical — fixed-size window (max sum subarray of size k)', input:'nums = [2, 1, 5, 1, 3, 2], k = 3', output:'9',
+          trace:[
+            'Seed window [2, 1, 5]: sum=8, best=8',
+            'Slide: drop 2, add 1 -> window [1, 5, 1]: sum=8, best stays 8',
+            'Slide: drop 1, add 3 -> window [5, 1, 3]: sum=9, best=9',
+            'Slide: drop 5, add 2 -> window [1, 3, 2]: sum=6, best stays 9',
+            'Answer: 9',
+          ]},
+        { title:'Edge case — variable-size window (longest substring without repeats)', input:'s = "abcabcbb"', output:'3',
+          trace:[
+            "right=0 ('a'): window=\"a\", size=1, best=1",
+            "right=1 ('b'): window=\"ab\", size=2, best=2",
+            "right=2 ('c'): window=\"abc\", size=3, best=3",
+            "right=3 ('a'): 'a' already in window -> shrink left from 0 to 1, window=\"bca\", size=3, best stays 3",
+            "right=4 ('b'): 'b' already in window -> shrink left from 1 to 2, window=\"cab\", size=3",
+            "right=5 ('c'): 'c' already in window -> shrink left from 2 to 3, window=\"abc\", size=3",
+            "right=6, 7 ('b','b'): each forces a shrink, but the window never exceeds size 3 again",
+            'Final answer: best = 3 (e.g. "abc")',
+          ]},
+      ]}},
   { name:'Fast & Slow Pointers', pill:'#FCE7F3', pillText:'#831843',
     trigger:'"cycle in a linked list / sequence", "find the middle node", "detect a repeating sequence"',
     desc:"Move two pointers through a sequence at different speeds (1 step vs 2 steps). If a cycle exists, the fast pointer eventually laps the slow one and they meet — no extra memory needed to track visited nodes.",
@@ -3610,7 +4012,33 @@ const PATTERN_GUIDE = [
       { name:'Palindrome Linked List', num:234, diff:E, slug:'palindrome-linked-list' },
       { name:'Linked List Cycle II', num:142, diff:M, slug:'linked-list-cycle-ii' },
       { name:'Find the Duplicate Number', num:287, diff:M, slug:'find-the-duplicate-number' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "Two pointers move through a sequence at different speeds — slow advances one step, fast advances two. If the sequence is finite and acyclic, fast reaches the end first (useful for finding the middle: when fast reaches the end, slow is at the midpoint). If the sequence loops back on itself, fast will eventually lap slow and they meet inside the cycle — this is Floyd's Cycle Detection.",
+        "Why they must meet in a cycle: once both pointers are inside the loop, the gap between fast and slow shrinks by exactly 1 each step (fast gains 1 on slow). A shrinking gap on a finite loop must eventually hit 0 — they meet.",
+        "Finding the cycle's START is a second phase: after slow and fast meet, reset one pointer to the head and advance both one step at a time. They meet again exactly at the cycle's entry point. This works because of the distance relationship between the head, the cycle entry, and the meeting point (provable with simple algebra on the distances traveled).",
+        "The same idea applies beyond linked lists: 'Happy Number' and 'Find the Duplicate Number' both treat a function's repeated application as an implicit linked list (value -> f(value)) and detect a cycle in that sequence to find a repeating/looping value.",
+      ],
+      cases:[
+        { title:'Typical — cycle detection on a linked list', input:'list: 3 -> 2 -> 0 -> -4 -> (back to 2)', output:'true (cycle detected)',
+          trace:[
+            'Init: slow=3, fast=3',
+            'Step 1: slow=2, fast=0',
+            'Step 2: slow=0, fast=2 (fast wrapped via -4 -> 2)',
+            'Step 3: slow=-4, fast=-4  -> slow === fast, cycle confirmed',
+            'Phase 2 (find entry): reset ptr=head(3), keep fast at meeting point (-4)',
+            'Move both one step: ptr=2, fast=2  -> they match at node value 2, the cycle entry',
+          ]},
+        { title:'Edge case — no cycle (fast pointer hits null)', input:'list: 1 -> 2 -> 3 -> null', output:'false (no cycle)',
+          trace:[
+            'Init: slow=1, fast=1',
+            'Step 1: slow=2, fast=3',
+            'Step 2: fast.next is null -> fast cannot advance two more steps',
+            'Loop terminates because fast (or fast.next) became null before slow met fast',
+            'Answer: false',
+          ]},
+      ]}},
   { name:'LinkedList In-place Reversal', pill:'#EDE9FE', pillText:'#5B21B6',
     trigger:'"reverse a linked list", "reverse between positions m and n", "reverse in groups of k"',
     desc:"Reverse a section of a linked list in a single pass by redirecting each node's next pointer to the previous node — no new list allocation needed.",
@@ -3628,7 +4056,38 @@ const PATTERN_GUIDE = [
       { name:'Rotate List', num:61, diff:M, slug:'rotate-list' },
       { name:'Reorder List', num:143, diff:M, slug:'reorder-list' },
       { name:'Reverse Nodes in k-Group', num:25, diff:H, slug:'reverse-nodes-in-k-group' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "Reversing a linked list in place means redirecting next pointers without allocating new nodes. The core 3-pointer dance is: keep `prev` (initially null), `curr` (the node being processed), and save `next = curr.next` BEFORE overwriting curr.next = prev — otherwise you lose the rest of the list. Then advance prev = curr and curr = next.",
+        "Reversing a SUBSECTION (positions m to n) needs one extra anchor: the node immediately BEFORE position m (call it `before`). Reverse the m..n sublist exactly like a full reversal, then reconnect: before.next = the new head of the reversed section (originally at position n), and the original node-at-m (now the tail of the reversed section) .next = the node that originally followed position n.",
+        "A dummy node placed before the head removes the special case where m=1 (reversing starts at the very head, so there's no 'before' node) — `before` is just the dummy.",
+        "Reverse Nodes in k-Group extends this: repeatedly reverse chunks of exactly k nodes, but first check that at least k nodes remain — if fewer than k nodes are left, leave that final chunk unreversed.",
+      ],
+      cases:[
+        { title:'Typical — reverse between positions m and n', input:'head = [1, 2, 3, 4, 5], m = 2, n = 4', output:'[1, 4, 3, 2, 5]',
+          trace:[
+            'Walk to the node before position m: before = node(1)',
+            'Start reversal at curr = node(2), prev = null',
+            'Step 1: next=node(3); node(2).next=null (prev); prev=node(2); curr=node(3)',
+            'Step 2: next=node(4); node(3).next=node(2); prev=node(3); curr=node(4)',
+            'Step 3: next=node(5); node(4).next=node(3); prev=node(4); curr=node(5) (stop, n reached)',
+            'Reconnect: before.next = prev (node 4) -> 1 -> 4 -> 3 -> 2',
+            'Reconnect tail: original node(2).next = curr (node 5) -> 2 -> 5',
+            'Result: 1 -> 4 -> 3 -> 2 -> 5',
+          ]},
+        { title:'Edge case — reverse the entire 2-node list (m=1, n=2)', input:'head = [1, 2], m = 1, n = 2', output:'[2, 1]',
+          trace:[
+            'Dummy node inserted before head: dummy -> 1 -> 2',
+            'before = dummy (since m=1)',
+            'curr = node(1), prev = null',
+            'Step 1: next=node(2); node(1).next=null; prev=node(1); curr=node(2)',
+            'Step 2: next=null; node(2).next=node(1); prev=node(2); curr=null (stop, n reached)',
+            'Reconnect: before.next (dummy.next) = prev (node 2) -> dummy -> 2 -> 1',
+            'Reconnect tail: original node(1).next = curr (null) -> 1 -> null',
+            'Result: 2 -> 1',
+          ]},
+      ]}},
   { name:'Monotonic Stack', pill:'#FFEDD5', pillText:'#9A3412',
     trigger:'"next/previous greater or smaller element", "daily temperatures", "largest rectangle"',
     desc:"Keep a stack of indices whose values stay in increasing (or decreasing) order. When a new element breaks that order, pop and resolve the popped elements against it. Each element is pushed and popped at most once, so the total work is O(n).",
@@ -3647,7 +4106,36 @@ const PATTERN_GUIDE = [
       { name:'Remove K Digits', num:402, diff:M, slug:'remove-k-digits' },
       { name:'Trapping Rain Water', num:42, diff:H, slug:'trapping-rain-water' },
       { name:'Largest Rectangle in Histogram', num:84, diff:H, slug:'largest-rectangle-in-histogram' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "A monotonic stack holds indices (or values) in strictly increasing or strictly decreasing order from bottom to top. When the next element would break that order, you pop elements off the stack — and each pop is a chance to RESOLVE something for the popped element, like 'the next greater element to my right is the current element'.",
+        "Because every element is pushed exactly once and popped at most once, the total work across the whole array is O(n) even though there's a nested-looking while loop — this is the classic amortized analysis argument.",
+        "'Next greater element' uses a decreasing stack scanned left-to-right: when current > stack-top's value, the current element IS the next-greater for stack-top. 'Previous smaller element' uses an increasing stack. Daily Temperatures is 'next greater', tracked as an index distance instead of a value.",
+        "Largest Rectangle in Histogram extends the idea: maintain an increasing stack of bar heights; when a shorter bar appears, pop taller bars and compute the rectangle area using that popped bar's height with width = (current index - new stack top index - 1).",
+        "Pitfall: decide carefully between strict (>) and non-strict (>=) comparisons — it changes how equal values are handled and can produce off-by-one errors or duplicate resolutions.",
+      ],
+      cases:[
+        { title:'Typical — Next Greater Element', input:'nums = [2, 1, 2, 4, 3]', output:'[4, 2, 4, -1, -1]',
+          trace:[
+            'i=0 (val=2): stack empty -> push 0. Stack: [0]',
+            'i=1 (val=1): 1 < nums[0]=2, no pop -> push 1. Stack: [0,1]',
+            'i=2 (val=2): 2 > nums[1]=1 -> pop 1, result[1]=2. 2 == nums[0]=2, stop popping -> push 2. Stack: [0,2]',
+            'i=3 (val=4): 4 > nums[2]=2 -> pop 2, result[2]=4. 4 > nums[0]=2 -> pop 0, result[0]=4. Stack empty -> push 3. Stack: [3]',
+            'i=4 (val=3): 3 < nums[3]=4, no pop -> push 4. Stack: [3,4]',
+            'End of array: remaining stack indices [3,4] get result = -1',
+            'Final: [4, 2, 4, -1, -1]',
+          ]},
+        { title:'Edge case — strictly increasing input (Daily Temperatures)', input:'temperatures = [30, 40, 50, 60]', output:'[1, 1, 1, 0]',
+          trace:[
+            'i=0 (30): stack empty -> push 0. Stack: [0]',
+            'i=1 (40): 40 > 30 -> pop 0, answer[0] = 1-0 = 1. Stack empty -> push 1. Stack: [1]',
+            'i=2 (50): 50 > 40 -> pop 1, answer[1] = 2-1 = 1. Stack empty -> push 2. Stack: [2]',
+            'i=3 (60): 60 > 50 -> pop 2, answer[2] = 3-2 = 1. Stack empty -> push 3. Stack: [3]',
+            'End of array: index 3 left on stack with no warmer day -> answer[3] = 0',
+            'Final: [1, 1, 1, 0]  (every element resolved on the very next step — worst case for stack churn, still O(n) total)',
+          ]},
+      ]}},
   { name:"Top 'K' Elements", pill:'#CCFBF1', pillText:'#0F766E',
     trigger:'"kth largest/smallest", "top K frequent", "K closest points"',
     desc:"Use a heap of size K (or quickselect) instead of fully sorting the data. A min-heap keeps the K largest values seen so far — anything smaller than the heap's minimum can be discarded immediately.",
@@ -3665,7 +4153,34 @@ const PATTERN_GUIDE = [
       { name:'Top K Frequent Words', num:692, diff:M, slug:'top-k-frequent-words' },
       { name:'Kth Smallest Element in a Sorted Matrix', num:378, diff:M, slug:'kth-smallest-element-in-a-sorted-matrix' },
       { name:'Find K Pairs with Smallest Sums', num:373, diff:M, slug:'find-k-pairs-with-smallest-sums' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "To find the K largest elements, keep a MIN-heap of size K. Push elements one at a time; once the heap has K items, compare each new element to the heap's smallest (the root) — if the new element is bigger, pop the root and push the new element. After processing everything, the heap holds exactly the K largest values, and its root is the Kth largest.",
+        "This is O(n log k) instead of O(n log n) for a full sort, which matters when k is much smaller than n. For K smallest elements, flip it: use a MAX-heap of size K.",
+        "Top K Frequent Elements adds a preprocessing step: build a frequency map first, then run the size-K heap (or use bucket sort, since frequency is bounded by n, giving O(n) instead of O(n log k)).",
+        "Quickselect is an alternative with average O(n) time (worst case O(n^2)): partition like quicksort, but only recurse into the side that contains the Kth index — discard the other side entirely.",
+      ],
+      cases:[
+        { title:'Typical — Kth Largest Element', input:'nums = [3, 2, 1, 5, 6, 4], k = 2', output:'5',
+          trace:[
+            'Process 3: heap=[3] (size < k, just add)',
+            'Process 2: heap=[2,3] (size==k now)',
+            'Process 1: 1 < heap min (2) -> skip. heap=[2,3]',
+            'Process 5: 5 > heap min (2) -> pop 2, push 5. heap=[3,5]',
+            'Process 6: 6 > heap min (3) -> pop 3, push 6. heap=[5,6]',
+            'Process 4: 4 < heap min (5) -> skip. heap=[5,6]',
+            'Heap root (min of heap) = 5 -> 2nd largest = 5',
+          ]},
+        { title:'Edge case — k equals array length', input:'nums = [1, 2, 3], k = 3', output:'1',
+          trace:[
+            'Process 1: heap=[1] (size < k)',
+            'Process 2: heap=[1,2] (size < k)',
+            'Process 3: heap=[1,2,3] (size==k now)',
+            'No more elements to process',
+            'Heap root (min) = 1 -> 3rd largest = the smallest element overall, which is correct since k==n means "every element is in the top k"',
+          ]},
+      ]}},
   { name:'Overlapping Intervals', pill:'#FEE2E2', pillText:'#991B1B',
     trigger:'"merge intervals", "insert an interval", "scheduling / meeting room conflicts"',
     desc:"Sort intervals by start time, then sweep through them once. Two intervals [a,b] and [c,d] overlap when b >= c — merge them by extending the end time, otherwise start a new interval.",
@@ -3683,7 +4198,35 @@ const PATTERN_GUIDE = [
       { name:'Meeting Rooms II', num:253, diff:M, slug:'meeting-rooms-ii' },
       { name:'Minimum Number of Arrows to Burst Balloons', num:452, diff:M, slug:'minimum-number-of-arrows-to-burst-balloons' },
       { name:'Interval List Intersections', num:986, diff:M, slug:'interval-list-intersections' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "Step 1 is almost always the same: sort intervals by start time. Once sorted, you only ever need to compare each interval to the LAST one you've kept (or the running 'current merged interval') — never to all previous intervals.",
+        "Two intervals [a,b] and [c,d] (with a <= c after sorting) overlap exactly when c <= b — the next interval's start is at or before the current interval's end. If they overlap, merge into [a, max(b,d)] (note the max — a shorter interval can be fully contained inside a longer one).",
+        "If they don't overlap (c > b), the current interval is finalized/output, and [c,d] becomes the new 'current' interval to compare against.",
+        "Variants: Insert Interval is the same sweep but with one interval inserted into an already-sorted, already-merged list (so you only need one pass: copy intervals before, merge overlapping ones, copy intervals after). Non-overlapping Intervals asks how many intervals to REMOVE to eliminate all overlaps — greedily keep the interval that ends earliest at each conflict, since it leaves the most room for future intervals.",
+      ],
+      cases:[
+        { title:'Typical — merge overlapping intervals', input:'intervals = [[1,3],[2,6],[8,10],[15,18]]', output:'[[1,6],[8,10],[15,18]]',
+          trace:[
+            'Sort by start (already sorted here)',
+            'current = [1,3]',
+            'Next [2,6]: 2 <= 3 (overlap) -> merge to [1, max(3,6)] = [1,6]. current = [1,6]',
+            'Next [8,10]: 8 <= 6? No -> finalize [1,6], current = [8,10]',
+            'Next [15,18]: 15 <= 10? No -> finalize [8,10], current = [15,18]',
+            'End of list -> finalize [15,18]',
+            'Result: [[1,6],[8,10],[15,18]]',
+          ]},
+        { title:'Edge case — chained overlaps collapse into one interval', input:'intervals = [[1,4],[2,3],[3,5]]', output:'[[1,5]]',
+          trace:[
+            'Sort by start (already sorted)',
+            'current = [1,4]',
+            'Next [2,3]: 2 <= 4 (overlap) -> merge to [1, max(4,3)] = [1,4] (end unchanged since 3 < 4). current = [1,4]',
+            'Next [3,5]: 3 <= 4 (overlap) -> merge to [1, max(4,5)] = [1,5]. current = [1,5]',
+            'End of list -> finalize [1,5]',
+            'Result: [[1,5]]  — note [2,3] was fully swallowed by [1,4] but still extended the merge check correctly',
+          ]},
+      ]}},
   { name:'Modified Binary Search', pill:'#E0E7FF', pillText:'#3730A3',
     trigger:'"rotated sorted array", "find a boundary / first-last position", "search a sorted 2D matrix"',
     desc:"Adapt binary search's halving logic to arrays that aren't fully sorted but have a sorted structure (e.g. one half of a rotated array is always sorted). Determine which half is sorted, check whether the target falls in that range, and recurse into the correct half.",
@@ -3702,7 +4245,36 @@ const PATTERN_GUIDE = [
       { name:'Search a 2D Matrix II', num:240, diff:M, slug:'search-a-2d-matrix-ii' },
       { name:'Koko Eating Bananas', num:875, diff:M, slug:'koko-eating-bananas' },
       { name:'Median of Two Sorted Arrays', num:4, diff:H, slug:'median-of-two-sorted-arrays' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "Standard binary search needs a fully sorted array. Many problems give you something almost sorted — a rotated sorted array, or an array where you're really searching for a BOUNDARY (first/last True value) rather than an exact match. The halving idea still works; you just need a different rule for deciding which half to keep.",
+        "Rotated sorted array: at every mid, AT LEAST ONE of the two halves [left..mid] or [mid..right] is fully sorted (because a single rotation point can only break one of them). Check which half is sorted by comparing nums[left] <= nums[mid]; then check whether the target lies within that sorted half's range — if yes, recurse there, otherwise recurse into the other half.",
+        "Find Minimum in Rotated Sorted Array is a special case: compare nums[mid] to nums[right] — if nums[mid] > nums[right], the minimum is in the right half (mid+1..right), otherwise it's in the left half (left..mid), including mid itself.",
+        "'Binary search on the answer space' (Koko Eating Bananas) is a different flavor: instead of searching an array, you binary-search over POSSIBLE ANSWERS (e.g. eating speeds 1..max(piles)), using a feasibility check (can Koko finish in time at this speed?) to decide whether to search higher or lower. This works whenever the feasibility function is monotonic.",
+      ],
+      cases:[
+        { title:'Typical — search in rotated sorted array', input:'nums = [4,5,6,7,0,1,2], target = 0', output:'4',
+          trace:[
+            'left=0, right=6, mid=3 (nums[3]=7). 7 != 0.',
+            'Check left half: nums[left]=4 <= nums[mid]=7, so left half [0..3] is sorted.',
+            'Is target(0) in range [nums[left]=4, nums[mid]=7]? No -> search right half.',
+            'left=4, right=6, mid=5 (nums[5]=1). 1 != 0.',
+            'Check left half: nums[left]=0 <= nums[mid]=1, so left half [4..5] is sorted.',
+            'Is target(0) in range [nums[4]=0, nums[5]=1]? Yes -> search left half.',
+            'left=4, right=4, mid=4 (nums[4]=0). 0 == target -> return 4',
+          ]},
+        { title:'Edge case — target not present', input:'nums = [4,5,6,7,0,1,2], target = 3', output:'-1',
+          trace:[
+            'left=0, right=6, mid=3 (nums[3]=7). 7 != 3.',
+            'Left half [0..3] sorted (4<=7). Is 3 in [4,7]? No -> search right half.',
+            'left=4, right=6, mid=5 (nums[5]=1). 1 != 3.',
+            'Left half [4..5] sorted (0<=1). Is 3 in [0,1]? No -> search right half.',
+            'left=6, right=6, mid=6 (nums[6]=2). 2 != 3.',
+            'Left half [6..6] sorted (2<=2). Is 3 in [2,2]? No -> search right half, but right half is empty.',
+            'left > right -> loop ends, return -1',
+          ]},
+      ]}},
   { name:'Binary Tree Traversal', pill:'#DCFCE7', pillText:'#166534',
     trigger:'"preorder/inorder/postorder", "serialize a tree", "process subtrees bottom-up"',
     desc:"Visit every node in a defined order. Preorder (root, left, right) suits copying/serializing; inorder (left, root, right) yields sorted output for a BST; postorder (left, right, root) suits problems where a node depends on results from its children.",
@@ -3721,7 +4293,36 @@ const PATTERN_GUIDE = [
       { name:'Kth Smallest Element in a BST', num:230, diff:M, slug:'kth-smallest-element-in-a-bst' },
       { name:'Construct Binary Tree from Preorder and Inorder Traversal', num:105, diff:M, slug:'construct-binary-tree-from-preorder-and-inorder-traversal' },
       { name:'Binary Tree Maximum Path Sum', num:124, diff:H, slug:'binary-tree-maximum-path-sum' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "The three classic traversals differ only in WHEN you 'visit' (process) the current node relative to recursing into its children. Preorder: process root, then left subtree, then right subtree — natural for copying/serializing a tree top-down, since you write the root before its children. Inorder: left, root, right — for a Binary Search Tree, this visits nodes in ascending sorted order, which is exactly why Kth Smallest Element in a BST does an inorder traversal and stops at the Kth visit.",
+        "Postorder: left, right, root — used whenever a node's answer DEPENDS on results computed from both children first, e.g. computing subtree heights, diameters, or Binary Tree Maximum Path Sum (each node needs to know the best path sum extending downward through each child before it can compute its own contribution).",
+        "All three can be done iteratively with an explicit stack instead of recursion — useful when recursion depth could exceed the call stack limit on very deep/skewed trees.",
+        "Construct Binary Tree from Preorder and Inorder is a nice combination: the first element of preorder is always the root; its position in inorder splits the remaining elements into left and right subtree ranges for both arrays, recursively.",
+      ],
+      cases:[
+        { title:'Typical — inorder traversal', input:'root = [1, null, 2, 3]  (1 has only a right child 2; 2 has a left child 3)', output:'[1, 3, 2]',
+          trace:[
+            'inorder(1): recurse left (null) -> nothing',
+            '  visit 1 -> output [1]',
+            '  recurse right -> inorder(2):',
+            '    recurse left -> inorder(3):',
+            '      recurse left (null) -> nothing',
+            '      visit 3 -> output [1, 3]',
+            '      recurse right (null) -> nothing',
+            '    visit 2 -> output [1, 3, 2]',
+            '    recurse right (null) -> nothing',
+            'Final inorder: [1, 3, 2]',
+          ]},
+        { title:'Edge case — single node tree', input:'root = [5]', output:'preorder=[5], inorder=[5], postorder=[5]',
+          trace:[
+            'preorder(5): visit 5 first (output=[5]), then recurse left (null, nothing), then recurse right (null, nothing)',
+            'inorder(5): recurse left (null, nothing), visit 5 (output=[5]), recurse right (null, nothing)',
+            'postorder(5): recurse left (null, nothing), recurse right (null, nothing), visit 5 last (output=[5])',
+            'All three traversals produce the same single-element output for a tree with no children — the ordering rules only matter when there are multiple nodes to sequence',
+          ]},
+      ]}},
   { name:'Depth-First Search (DFS)', pill:'#FFE4E6', pillText:'#9F1239',
     trigger:'"explore every path", "connected components", "cycle detection in a directed graph"',
     desc:"Go as deep as possible along each branch before backtracking, using recursion or an explicit stack. A visited set prevents revisiting nodes in graphs with cycles.",
@@ -3740,7 +4341,35 @@ const PATTERN_GUIDE = [
       { name:'Course Schedule II', num:210, diff:M, slug:'course-schedule-ii' },
       { name:'Word Search', num:79, diff:M, slug:'word-search' },
       { name:'All Paths From Source to Target', num:797, diff:M, slug:'all-paths-from-source-to-target' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "DFS commits to a path and only backs up (backtracks) when it hits a dead end — implemented either with explicit recursion (the call stack IS the path) or a manual stack. At each node, you typically: mark it visited, recurse into each unvisited neighbor, and (for path-collection problems) un-mark or pop it when backtracking back up.",
+        "Order matters: marking a node visited BEFORE recursing into its neighbors prevents infinite loops in cyclic graphs. For path-finding problems (All Paths From Source to Target), there's no 'visited' set needed if the graph is a DAG — you just need to remove the current node from the path list when backtracking so siblings don't see it.",
+        "Many 'backtracking-flavored' problems are really DFS over an implicit tree of choices: each recursive call represents a decision, and undoing that decision (popping from a path/list) before returning is what lets you explore the next branch.",
+        "Cycle detection in a DIRECTED graph needs THREE states per node, not two: unvisited, 'in the current recursion stack' (gray), and 'fully processed' (black). If DFS reaches a gray node, that's a back-edge — a cycle. This is the basis for Course Schedule's topological-sort feasibility check.",
+      ],
+      cases:[
+        { title:'Typical — root-to-leaf paths', input:'root = [1, 2, 3, null, 5]  (1 has children 2,3; 2 has right child 5)', output:'["1->2->5", "1->3"]',
+          trace:[
+            'dfs(1, path="1")',
+            '  dfs(2, path="1->2")',
+            '    left child of 2 is null -> skip',
+            '    dfs(5, path="1->2->5")',
+            '      5 is a leaf -> record path "1->2->5"',
+            '  dfs(3, path="1->3")',
+            '    3 is a leaf -> record path "1->3"',
+            'Final result: ["1->2->5", "1->3"]',
+          ]},
+        { title:'Edge case — cycle detection (Course Schedule)', input:'numCourses = 2, prerequisites = [[1,0],[0,1]]  (course 1 needs 0, course 0 needs 1)', output:'false (cycle exists, cannot finish)',
+          trace:[
+            'States: all courses start UNVISITED',
+            'dfs(0): mark 0 as IN_PROGRESS',
+            '  visit prerequisite-neighbor 1: dfs(1): mark 1 as IN_PROGRESS',
+            '    visit prerequisite-neighbor 0: 0 is IN_PROGRESS -> back-edge found -> CYCLE DETECTED',
+            'Return false immediately — no valid course order exists',
+          ]},
+      ]}},
   { name:'Breadth-First Search (BFS)', pill:'#E0F2FE', pillText:'#075985',
     trigger:'"shortest path in an unweighted graph", "level-order traversal", "minimum number of steps/transformations"',
     desc:"Explore a tree or graph level by level using a queue. Because BFS visits nodes in order of distance from the start, the first time it reaches a target is guaranteed to be the shortest path.",
@@ -3759,7 +4388,40 @@ const PATTERN_GUIDE = [
       { name:'01 Matrix', num:542, diff:M, slug:'01-matrix' },
       { name:'Snakes and Ladders', num:909, diff:M, slug:'snakes-and-ladders' },
       { name:'Word Ladder', num:127, diff:H, slug:'word-ladder' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "BFS expands outward from the start in 'waves' (also called the wavefront): all nodes at distance 1 are processed before any node at distance 2, and so on. Because of this, the FIRST time BFS reaches any node is guaranteed to be via a shortest path — there's no need to revisit it with a 'better' route later, so mark nodes visited the moment you ENQUEUE them (not when you dequeue them) to avoid duplicate enqueues.",
+        "Level-order traversal exploits the wave structure directly: before processing a level, snapshot the current queue size — that's exactly how many nodes belong to this level. Process that many, enqueue their children for the next level, repeat.",
+        "Multi-source BFS (Rotting Oranges, 01 Matrix) starts with ALL source nodes already in the queue at distance 0, then proceeds normally — this correctly computes, for every cell, the distance to the NEAREST of multiple sources simultaneously.",
+        "Word Ladder treats each word as a graph node; an edge connects two words that differ by exactly one letter. BFS from the start word finds the shortest transformation sequence to the target word, since each step (edge) costs 1.",
+      ],
+      cases:[
+        { title:'Typical — level-order traversal', input:'root = [3, 9, 20, null, null, 15, 7]', output:'[[3], [9, 20], [15, 7]]',
+          trace:[
+            'queue = [3]. Level size = 1.',
+            'Process 3: add to level [3]. Enqueue children 9, 20. queue = [9, 20]',
+            'Level done -> result = [[3]]',
+            'Level size = 2.',
+            'Process 9: add to level [9]. No children.',
+            'Process 20: add to level [9, 20]. Enqueue children 15, 7. queue = [15, 7]',
+            'Level done -> result = [[3], [9, 20]]',
+            'Level size = 2.',
+            'Process 15: add to level [15]. No children.',
+            'Process 7: add to level [15, 7]. No children.',
+            'Level done -> result = [[3], [9, 20], [15, 7]]',
+          ]},
+        { title:'Edge case — multi-source BFS (Rotting Oranges)', input:'grid = [[2,1,1],[1,1,0],[0,1,1]]  (2=rotten, 1=fresh, 0=empty)', output:'4 minutes',
+          trace:[
+            'Minute 0: queue starts with all rotten oranges: [(0,0)]. fresh count = 6',
+            'Minute 1: rot neighbors of (0,0): (0,1) and (1,0) become rotten. fresh count = 4. queue=[(0,1),(1,0)]',
+            'Minute 2: rot neighbors of (0,1): (0,2),(1,1) become rotten; rot neighbors of (1,0): (1,1) already queued. fresh count = 2. queue=[(0,2),(1,1)]',
+            'Minute 3: rot neighbors of (0,2): none new; rot neighbors of (1,1): (2,1) becomes rotten. fresh count = 1. queue=[(2,1)]',
+            'Minute 4: rot neighbors of (2,1): (2,2) becomes rotten. fresh count = 0. queue=[(2,2)]',
+            'Minute 5: queue still has (2,2) but no fresh neighbors -> minute 5 not counted (only counted up to last successful rot)',
+            'fresh count == 0 -> answer = 4 minutes',
+          ]},
+      ]}},
   { name:'Matrix Traversal', pill:'#FEF3C7', pillText:'#92400E',
     trigger:'"flood fill", "islands / connected regions in a grid", "surrounded regions"',
     desc:"Treat each grid cell as a graph node connected to its (usually 4) neighbors, then run DFS or BFS from a starting cell — marking visited cells so you never process the same one twice.",
@@ -3778,7 +4440,36 @@ const PATTERN_GUIDE = [
       { name:'Spiral Matrix', num:54, diff:M, slug:'spiral-matrix' },
       { name:'Pacific Atlantic Water Flow', num:417, diff:M, slug:'pacific-atlantic-water-flow' },
       { name:'Word Search', num:79, diff:M, slug:'word-search' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "Treat each cell (r, c) as a node in a graph, connected to its up/down/left/right neighbors (sometimes diagonals too). DFS or BFS from a starting cell, checking that each neighbor is in-bounds, unvisited, and meets the problem's condition (same color for flood fill, '1' for islands, etc.).",
+        "Mark a cell visited at the moment you decide to explore it (push to stack/queue or recurse into it) — not after processing — otherwise the same cell can be queued multiple times by different neighbors.",
+        "'Number of Islands' / connected components: scan every cell; whenever you find an unvisited land cell, run a full DFS/BFS to mark its entire connected component as visited and increment a counter. Each component is counted exactly once.",
+        "Surrounded Regions uses a clever inversion: instead of finding regions surrounded by 'X', first find all 'O' regions connected to the BORDER (these can never be surrounded) and mark them safe; everything else gets flipped.",
+      ],
+      cases:[
+        { title:'Typical — flood fill', input:'image = [[1,1,1],[1,1,0],[1,0,1]], sr=1, sc=1, newColor=2', output:'[[2,2,2],[2,2,0],[2,0,1]]',
+          trace:[
+            'Start color = image[1][1] = 1. newColor = 2.',
+            'dfs(1,1): color is 1 -> set to 2. image[1][1]=2',
+            '  check up (0,1)=1 -> matches old color -> dfs(0,1): set to 2',
+            '    check up (-1,1) out of bounds; left (0,0)=1 -> dfs(0,0): set to 2; right (0,2)=1 -> dfs(0,2): set to 2; down (1,1)=2, already changed -> skip',
+            '  check down (2,1)=0 -> does not match old color 1 -> skip',
+            '  check left (1,0)=1 -> matches -> dfs(1,0): set to 2 (no further unvisited matches)',
+            '  check right (1,2)=0 -> does not match -> skip',
+            'Result grid: [[2,2,2],[2,2,0],[2,0,1]]',
+          ]},
+        { title:'Edge case — counting disconnected islands', input:'grid = [[1,0,1],[0,0,0],[1,0,1]]', output:'4',
+          trace:[
+            'Scan (0,0)=1, unvisited -> DFS marks just (0,0) (no adjacent land) -> islands=1',
+            'Scan (0,1)=0 -> skip. Scan (0,2)=1, unvisited -> DFS marks just (0,2) -> islands=2',
+            'Scan row 1: all zeros -> skip all',
+            'Scan (2,0)=1, unvisited -> DFS marks just (2,0) -> islands=3',
+            'Scan (2,1)=0 -> skip. Scan (2,2)=1, unvisited -> DFS marks just (2,2) -> islands=4',
+            'Every land cell is isolated (diagonal adjacency does not count) -> answer = 4',
+          ]},
+      ]}},
   { name:'Backtracking', pill:'#F3E8FF', pillText:'#6B21A8',
     trigger:'"generate all permutations/combinations/subsets", "constraint satisfaction (N-Queens, Sudoku)"',
     desc:"Build a solution incrementally and abandon (\"backtrack\") a path as soon as it can't lead to a valid result. Used for any \"find all ways to...\" problem with combinatorial choices.",
@@ -3797,7 +4488,40 @@ const PATTERN_GUIDE = [
       { name:'Palindrome Partitioning', num:131, diff:M, slug:'palindrome-partitioning' },
       { name:'Word Search', num:79, diff:M, slug:'word-search' },
       { name:'N-Queens', num:51, diff:H, slug:'n-queens' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "Backtracking is DFS over a tree of CHOICES. At each step you: (1) CHOOSE — add a candidate to the current partial solution, (2) EXPLORE — recurse to extend it further, and (3) UNCHOOSE — remove that candidate before trying the next option. The 'unchoose' step is what makes it backtracking instead of plain DFS — it restores shared state so the next branch starts clean.",
+        "When recording a result, push a COPY of the current path (e.g. `results.append(list(path))`), not the path object itself — otherwise later mutations (from unchoosing) will corrupt already-saved results.",
+        "Subsets vs Permutations differ in how they avoid duplicates: Subsets uses a 'start index' so each recursive call only considers elements AFTER the current one (order doesn't matter, so no need to revisit earlier elements). Permutations uses a 'used' set/array, since every element can appear in any position but each only once per arrangement.",
+        "N-Queens adds PRUNING: before placing a queen, check if it conflicts with any previously placed queen (same column, or same diagonal — diagonals share the value row-col or row+col). If it conflicts, skip that branch entirely without recursing — this cuts the search space dramatically compared to generating all placements and checking validity afterward.",
+      ],
+      cases:[
+        { title:'Typical — all subsets', input:'nums = [1, 2, 3]', output:'[[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]]',
+          trace:[
+            'backtrack(start=0, path=[]): record [] -> results=[[]]',
+            '  choose 1: path=[1]. record [1] -> results=[[],[1]]',
+            '    choose 2: path=[1,2]. record [1,2]',
+            '      choose 3: path=[1,2,3]. record [1,2,3]. (no more elements) unchoose 3 -> path=[1,2]',
+            '    unchoose 2 -> path=[1]',
+            '    choose 3: path=[1,3]. record [1,3]. unchoose 3 -> path=[1]',
+            '  unchoose 1 -> path=[]',
+            '  choose 2: path=[2]. record [2]',
+            '    choose 3: path=[2,3]. record [2,3]. unchoose 3 -> path=[2]',
+            '  unchoose 2 -> path=[]',
+            '  choose 3: path=[3]. record [3]. unchoose 3 -> path=[]',
+            'Final results (8 = 2^3 subsets): [[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]]',
+          ]},
+        { title:'Edge case — pruning invalid placements (N-Queens, n=4)', input:'n = 4', output:'2 valid solutions',
+          trace:[
+            'Place queen in row 0: try col 0 -> ok, place. Try row 1: col 0 conflicts (same col), col 1 conflicts (diagonal) -> only col 2 and col 3 are safe',
+            'Row 1 col 2: place. Row 2: cols 0,1,2,3 ALL conflict with rows 0-1 -> dead end, backtrack entirely out of row 1 col 2',
+            'Row 1 col 3: place. Row 2: only col 1 is safe -> place. Row 3: every column conflicts -> dead end, backtrack',
+            'Backtrack all the way to row 0: try col 1 -> by symmetry this branch (and col 2, col 3) each eventually find exactly one valid full placement',
+            'Total valid solutions found after exploring all 4 starting columns with pruning: 2',
+            '(Without pruning, you would generate all 4^4=256 placements and validate each — pruning skips most of that tree)',
+          ]},
+      ]}},
   { name:'Dynamic Programming Patterns', pill:'#F3F4F6', pillText:'#374151',
     trigger:'"minimum/maximum result", "count the number of ways", "can you reach/partition the target"',
     desc:"Break a problem into overlapping subproblems with optimal substructure, then solve each one once (top-down with memoization, or bottom-up with a table) and reuse the results. Common shapes: Fibonacci-style 1D DP, 0/1 knapsack, unbounded knapsack (coin change), LCS/LIS, and matrix chain DP.",
@@ -3817,7 +4541,34 @@ const PATTERN_GUIDE = [
       { name:'Longest Increasing Subsequence (LIS)', num:300, diff:M, slug:'longest-increasing-subsequence' },
       { name:'Longest Common Subsequence (LCS)', num:1143, diff:M, slug:'longest-common-subsequence' },
       { name:'Edit Distance', num:72, diff:H, slug:'edit-distance' },
-    ]},
+    ],
+    deepDive:{
+      explanation:[
+        "DP applies when a problem has OPTIMAL SUBSTRUCTURE (the best solution to the whole problem is built from best solutions to subproblems) and OVERLAPPING SUBPROBLEMS (the same subproblem gets solved repeatedly if done naively with plain recursion). The hardest part is finding the recurrence: 'how does dp[i] relate to dp[i-1], dp[i-2], ... or dp[i][j-1], dp[i-1][j], etc.?'",
+        "1D DP (Climbing Stairs, House Robber): dp[i] depends on a fixed window of previous states (dp[i-1], dp[i-2]). Often reducible to O(1) space by keeping just the last 1-2 values instead of a full array.",
+        "0/1 Knapsack (Partition Equal Subset Sum): each item can be used at most once. When using a 1D array, iterate the capacity dimension RIGHT-TO-LEFT so that updating dp[c] doesn't accidentally use an already-updated value from the same item (which would mean using the item twice).",
+        "Unbounded Knapsack (Coin Change): each item can be reused unlimited times, so iterate capacity LEFT-TO-RIGHT — dp[c] CAN use a value already updated for the same item, representing 'use this coin again'.",
+        "2D DP (LCS, Edit Distance): dp[i][j] depends on dp[i-1][j], dp[i][j-1], and dp[i-1][j-1] — comparing prefixes of two sequences. Getting the base cases (row 0 / column 0) and fill order (row by row, left to right) right is essential since every cell depends on already-computed neighbors.",
+      ],
+      cases:[
+        { title:'Typical — Climbing Stairs', input:'n = 4 (each step you can climb 1 or 2 stairs)', output:'5 distinct ways',
+          trace:[
+            'Base cases: dp[0] = 1 (one way to stand still), dp[1] = 1 (one way: a single 1-step)',
+            'dp[2] = dp[1] + dp[0] = 1 + 1 = 2   (ways: 1+1, 2)',
+            'dp[3] = dp[2] + dp[1] = 2 + 1 = 3   (ways: 1+1+1, 1+2, 2+1)',
+            'dp[4] = dp[3] + dp[2] = 3 + 2 = 5   (ways: 1+1+1+1, 1+1+2, 1+2+1, 2+1+1, 2+2)',
+            'dp table: [1, 1, 2, 3, 5] -> answer = dp[4] = 5',
+          ]},
+        { title:'Edge case — Coin Change with no valid combination', input:'coins = [2], amount = 3', output:'-1 (impossible)',
+          trace:[
+            'dp[0] = 0 (zero coins needed to make amount 0)',
+            'dp[1]: try coin 2 -> 1-2 = -1 (invalid, skip). No valid coin -> dp[1] = infinity',
+            'dp[2]: try coin 2 -> dp[2-2]=dp[0]=0, so dp[2] = 0 + 1 = 1',
+            'dp[3]: try coin 2 -> dp[3-2]=dp[1]=infinity, so dp[3] stays infinity (no other coins to try)',
+            'dp table: [0, inf, 1, inf]',
+            'dp[3] is still infinity -> no combination of coin(s) sums to 3 -> return -1',
+          ]},
+      ]}},
 ];
 
 /* ═══════════════════════════════════════════════════════════
@@ -4241,9 +4992,18 @@ function EmailBar({ todayNum }) {
   );
 }
 
-function Home({ onGoToProblems, onGoToFlashcards, onGoToMock, onGoToPlan, onGoToPatterns }) {
+function Home({ onGoToProblems, onGoToFlashcards, onGoToMock, onGoToPlan, onGoToPatterns, onGoToSettings }) {
   const todayNum = getTodayDayNum();
   const today = todayNum ? DAYS.find(d => d.num === todayNum) : null;
+  const [dayDisplay, setDayDisplay] = useState(() => {
+    try { return localStorage.getItem('dsaplan_daydisplay') || 'day'; } catch(e) { return 'day'; }
+  });
+
+  function toggleDayDisplay() {
+    const next = dayDisplay === 'day' ? 'remaining' : 'day';
+    setDayDisplay(next);
+    try { localStorage.setItem('dsaplan_daydisplay', next); } catch(e) {}
+  }
 
   return (
     <div>
@@ -4252,8 +5012,16 @@ function Home({ onGoToProblems, onGoToFlashcards, onGoToMock, onGoToPlan, onGoTo
           {PLAN_NAME ? `Hey, ${PLAN_NAME}. ` : ''}DS&amp;A Interview Prep
         </div>
         <div style={{margin:'16px 0 6px'}}>
-          <div style={{fontFamily:"'Fira Code',monospace",fontSize:'clamp(22px,5vw,36px)',fontWeight:600,letterSpacing:'.04em',color:'#111827',lineHeight:1}}>
-            {todayNum ? `Day ${todayNum} of ${PLAN_LENGTH}` : `${PLAN_LENGTH}-Day Plan`}
+          <div
+            onClick={todayNum ? toggleDayDisplay : undefined}
+            title={todayNum ? "Click to toggle between 'Day X of Y' and days remaining" : undefined}
+            style={{fontFamily:"'Fira Code',monospace",fontSize:'clamp(22px,5vw,36px)',fontWeight:600,letterSpacing:'.04em',color:'#111827',lineHeight:1,cursor:todayNum ? 'pointer' : 'default'}}
+          >
+            {todayNum
+              ? (dayDisplay === 'remaining'
+                  ? `${PLAN_LENGTH - todayNum} days remaining until ${planDate(PLAN_LENGTH)}`
+                  : `Day ${todayNum} of ${PLAN_LENGTH}`)
+              : `${PLAN_LENGTH}-Day Plan`}
           </div>
           <div style={{fontSize:'12px',color:'var(--muted)',marginTop:'6px',letterSpacing:'.04em'}}>
             Professional DS&amp;A · Starting {planDate(1)} · Ends {planDate(PLAN_LENGTH)}
@@ -4263,6 +5031,7 @@ function Home({ onGoToProblems, onGoToFlashcards, onGoToMock, onGoToPlan, onGoTo
               {todayNum <= 7 ? 'Building your foundation.' : todayNum <= 14 ? 'Into data structures.' : todayNum <= 21 ? 'Graphs and search mastery.' : todayNum <= 28 ? 'DP and advanced patterns.' : todayNum <= 37 ? 'Advanced graph algorithms.' : todayNum <= 51 ? 'Hard problems and advanced structures.' : todayNum <= 67 ? 'Mastery level problems.' : 'System design + interview excellence.'}
             </div>
           )}
+          <button className="reset-toggle" onClick={onGoToSettings}>⚙ change start date / plan length in Settings</button>
         </div>
         <div style={{height:'20px'}} />
         <div className="home-actions">
@@ -4805,7 +5574,7 @@ const PROB_DAY_FILTERS = [
   // 60-day extension
   31,35,38,40,45,53,56,57,
   // 90-day extension
-  61,65,71,75,
+  61,62,63,64,65,69,70,71,72,73,75,
 ].filter((d,i,a) => a.indexOf(d)===i).sort((a,b)=>a-b);
 
 // ── Problem completion (localStorage) ────────────────────────
@@ -6318,17 +7087,47 @@ function PatternSample({ sample }) {
   );
 }
 
-function PatternCard({ pattern, num }) {
+function TestCaseTrace({ testCase }) {
   return (
-    <div style={{background:'#fff',border:'1px solid #e5e5e5',borderRadius:'8px',padding:'20px',marginBottom:'16px'}}>
-      <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'10px',flexWrap:'wrap'}}>
-        <span className="pattern-pill" style={{background:pattern.pill,color:pattern.pillText,minWidth:'24px',textAlign:'center'}}>{num}</span>
-        <div className="ref-section-title" style={{marginBottom:0}}>{pattern.name}</div>
+    <div style={{background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:'6px',padding:'12px 14px',marginBottom:'12px'}}>
+      <div className="lc-section-label" style={{marginBottom:'6px'}}>{testCase.title}</div>
+      <pre className="template-code" style={{marginBottom:'8px'}}>{`Input:  ${testCase.input}\nOutput: ${testCase.output}`}</pre>
+      <ol style={{margin:0,paddingLeft:'18px',fontSize:'12.5px',color:'#4b5563',lineHeight:'1.8'}}>
+        {testCase.trace.map((s,i) => <li key={i}>{s}</li>)}
+      </ol>
+    </div>
+  );
+}
+
+function PatternCard({ pattern, num }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="ds-card">
+      <div className="ds-header" onClick={() => setOpen(o => !o)}>
+        <div className="ds-header-left">
+          <div className="ds-name-row">
+            <span className="pattern-pill" style={{background:pattern.pill,color:pattern.pillText,minWidth:'24px',textAlign:'center'}}>{num}</span>
+            <span className="ds-name">{pattern.name}</span>
+          </div>
+          <p style={{fontSize:'12px',color:'var(--muted)',margin:'5px 0 0'}}><strong>Use when:</strong> {pattern.trigger}</p>
+        </div>
+        <span className="ds-toggle">{open ? '▲ Hide deep dive' : '▼ Deep dive & walkthroughs'}</span>
       </div>
-      <p style={{fontSize:'12px',color:'var(--muted)',marginBottom:'8px'}}><strong>Use when:</strong> {pattern.trigger}</p>
-      <p style={{fontSize:'13px',color:'#4b5563',marginBottom:'12px'}}>{pattern.desc}</p>
-      <PatternSample sample={pattern.sample} />
-      <LCProblems problems={pattern.leetcode} />
+      <div className="ds-body">
+        <p style={{fontSize:'13px',color:'#4b5563',margin:'12px 0'}}>{pattern.desc}</p>
+        <PatternSample sample={pattern.sample} />
+        <LCProblems problems={pattern.leetcode} />
+        {open && pattern.deepDive && (
+          <React.Fragment>
+            <div className="ds-section-label" style={{marginTop:'16px'}}>Deep Dive</div>
+            {pattern.deepDive.explanation.map((para,i) => (
+              <p key={i} style={{fontSize:'13px',color:'#4b5563',marginBottom:'10px',lineHeight:'1.65'}}>{para}</p>
+            ))}
+            <div className="ds-section-label" style={{marginTop:'16px'}}>Walkthroughs</div>
+            {pattern.deepDive.cases.map((c,i) => <TestCaseTrace key={i} testCase={c} />)}
+          </React.Fragment>
+        )}
+      </div>
     </div>
   );
 }
@@ -6494,7 +7293,7 @@ function SettingsTab() {
     <div style={{maxWidth:'720px'}}>
       <div className="section-title" style={{marginBottom:'6px'}}>Settings</div>
       <p style={{fontSize:'13.5px',color:'var(--muted)',marginBottom:'28px'}}>
-        Your preferences are saved locally in your browser.
+        Your preferences are saved locally in your browser. Your plan's date range is set by two things below: the <strong>Study Plan Length</strong> (30/60/90 days) and the <strong>Plan start date</strong> — together they determine the start and end dates shown throughout the app. Change either one and save to recalculate the whole schedule.
       </p>
 
       {/* Study Plan */}
@@ -6581,6 +7380,7 @@ const MOCK_TAB = 5;
 const FLASHCARDS_TAB = 3;
 const PLAN_TAB = 1;
 const PATTERNS_TAB = 2;
+const SETTINGS_TAB = 14;
 
 const TAB_CONTEXTS = [
   'I have a general question about my interview prep.',
@@ -6616,6 +7416,7 @@ function App() {
       onGoToFlashcards={() => setActiveTab(FLASHCARDS_TAB)}
       onGoToMock={() => setActiveTab(MOCK_TAB)}
       onGoToPatterns={() => setActiveTab(PATTERNS_TAB)}
+      onGoToSettings={() => setActiveTab(SETTINGS_TAB)}
     />,
     <DayPlan onDayClick={(dayNum) => goToProblems(`day:${dayNum}`)} />,
     <Patterns />,
